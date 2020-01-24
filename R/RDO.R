@@ -32,11 +32,7 @@ RDO <-
         # private$code_cached <- code
         private$name <- name
 
-        timestamp <- Sys.time()
-        attr(timestamp, "tzone") <- "UTC"
-
-        private$status$created <- timestamp
-
+        private$set_status(status = "created")
 
         dependency_names <-
           purrr::map_chr(dependencies, function(dependency) {
@@ -158,8 +154,7 @@ RDO <-
       }, # end of get_r_code
 
 
-      print_r_code = function(deep = FALSE
-                              ) {
+      print_r_code = function(deep = FALSE) {
 
         r_code_text <-
           self$get_r_code(deep = deep) %>%
@@ -167,11 +162,22 @@ RDO <-
           purrr::map(~ .x %>% as.character()) %>%
           purrr::map_chr(function(code_line) {
 
-            if (code_line[1] == "{") return(code_line[-1])
+            if (code_line[1] == "{") {
+
+              code_line <- code_line[-1]
+
+            }
+
+            code_line <- paste(code_line, collapse = "\n")
+
+            return(code_line)
 
           })
 
-        r_code_text %>% cat(fill = TRUE)
+        r_code_text %>%
+          # paste(collapse = "\n") %>%
+          cat(sep = "\n")
+        # r_code_text %>% cat(fill = TRUE)
 
         return(invisible(NULL))
 
@@ -181,6 +187,7 @@ RDO <-
 
       run_r_code = function(deep = FALSE,
                             cache = TRUE,
+                            # force = FALSE,
                             verbose = TRUE
                             ) {
 
@@ -188,75 +195,98 @@ RDO <-
 
         if (verbose) cat("Evaluating RDO:", rdo_name, "... ")
 
+
+
         has_dependencies <- self$has_dependencies()
 
-        if (!has_dependencies) {
+        if (has_dependencies) {
+
+          if (verbose) cat("has dependencies ...\n")
+
+        } else {
 
           temp_data <- eval(expr = self$get_r_code(deep = FALSE))
 
           if (verbose) cat("done!\n")
 
-        } else {
+        } # end of if
 
-          if (verbose) cat("has dependencies ...\n")
+
+
+        if (has_dependencies & deep) {
+
+          # TODO: self$invalidate(deep = TRUE)
+
+          dependencies <- self$get_dependencies(deep = TRUE)
+
+          purrr::walk(dependencies, function(rdo) {
+
+            rdo_name <- rdo$get_name()
+
+            is_validated <- rdo$is_validated(verbose = verbose)
+
+            dependecies <- rdo$get_dependencies()
+
+            dependencies_changed <-
+              purrr::map(dependecies, function(rdo) {
+
+                rdo$get_status()$changed
+
+              }) %>% unlist()
+
+            self_validated <- self$get_status()$validated
+
+            dependencies_changed <-
+              any(dependencies_changed >= self_validated)
+
+            if (verbose & dependencies_changed)
+              cat("Dependencies of RDO:", rdo_name, "have changed!\n")
+
+            if (!is_validated | dependencies_changed) {
+
+              rdo$run_r_code(deep = FALSE,
+                             cache = cache,
+                             verbose = verbose)
+
+            } # end of if
+          }) # end of walk
+        } # end of if
+
+        if (has_dependencies) {
 
           dependecies <- self$get_dependencies()
 
-          temp_data <-
-            eval(expr  = self$get_r_code(deep = FALSE),
-                 envir =
-                   purrr::map(dependecies, function(rdo) {
+          temp_data <- eval(
+            expr = self$get_r_code(deep = FALSE),
+            envir = purrr::map(dependecies, function(rdo) {
 
-                     rdo_name <- rdo$get_name()
+              rdo_name <- rdo$get_name()
 
-                     if (verbose) cat("Evaluating RDO:", rdo_name, "... ")
+              is_validated <- rdo$is_validated(verbose = verbose)
 
-                     is_validated <- rdo$is_validated()
+              if (!is_validated)
+                stop("Dependency object '", rdo_name, "' is not validated. ")
 
-                     if (!is_validated & deep == FALSE) {
+              rdo$data
 
-                       warning("Dependecy object '", rdo_name,
-                            "' has no validated data cache. "
-                            # "You can try to run with argument deep=TRUE ",
-                            # "to automatically update the data cache ",
-                            # "of all dependencies."
-                            )
-
-                       return(NULL)
-
-                     } # end of if
-
-                     if (!is_validated & deep == TRUE) {
-
-                       rdo_data <- rdo$run_r_code(deep = TRUE,
-                                                  cache = cache,
-                                                  verbose = verbose)
-
-                     } # end of if
-
-                     if (is_validated) {
-
-                       rdo_data <- rdo$data
-
-                     } # end of if
-
-                     if (verbose) cat("done!\n")
-
-                     rdo_data
-
-                   }) %>% setNames(names(dependecies)))
+              }) %>% setNames(names(dependecies)))
 
         } # end of if
+
+
 
         if (cache) {
 
           self$data <- temp_data
 
-          private$status$is_validated <- TRUE
+          private$set_status(status = "validated")
+
+          # private$status$is_validated <- TRUE
 
         } # end of if
 
-        if (verbose) cat("Done!\n")
+        if (verbose) cat("...evaluation of", rdo_name, "completed.\n")
+
 
         invisible(temp_data)
 
@@ -264,12 +294,52 @@ RDO <-
 
 
 
-      is_validated = function() {
 
-        private$status$is_validated
-        # TODO: deep == TRUE
 
-      }, # end of if
+
+      is_validated = function(deep = FALSE,
+                              verbose = TRUE
+                              ) {
+
+        self_name <- self$get_name()
+
+
+        has_dependencies <- self$has_dependencies()
+
+        are_validated <- c()
+
+        if (deep & has_dependencies) {
+
+          dependecies <- self$get_dependencies(deep = deep)
+
+          are_validated <-
+            purrr::map_lgl(dependecies, function(rdo) {
+
+              rdo_name <- rdo$get_name()
+
+              is_validated <- rdo$is_validated(deep = FALSE,
+                                               verbose = verbose)
+
+              is_validated
+
+            }) %>% all()
+
+        } # end of if
+
+        is_validated <- private$status$is_validated
+
+        if (verbose) {
+
+          cat("RDO: '", self_name, "' is ", sep = "")
+
+          if (is_validated) cat("validated.\n") else cat("NOT VALIDATED!\n")
+
+        } # end of if
+
+        is_validated <- all(are_validated, is_validated)
+        return(is_validated)
+
+      }, # end of is_validated
 
 
 
@@ -277,11 +347,29 @@ RDO <-
                             verbose = TRUE
                             ) {
 
+        has_dependencies <- self$has_dependencies()
+
+        if (deep & has_dependencies) {
+
+          dependecies <- self$get_dependencies(deep = deep)
+
+          purrr::walk(dependecies, function(rdo) {
+
+            rdo_name <- rdo$get_name()
+
+            rdo$invalidate(deep = FALSE, verbose = TRUE)
+
+          })
+
+        } # end of if
+
         self_name <- self$get_name()
 
         if (verbose) cat("Invalidating RDO: '", self_name, "' ... ", sep = "")
 
-        private$status$is_validated <- FALSE
+        private$set_status(status = "invalidated")
+
+        # private$status$is_validated <- FALSE
 
         if (verbose) cat("done.\n")
 
@@ -299,17 +387,19 @@ RDO <-
                           verbose = TRUE
                           ) {
 
+
         # TODO: deep == TRUE
         # TODO: step_by_step == FALSE
-        # TODO: step_by_step == FALSE
+        dependencies_validated <- c()
 
         if (deep & self$has_dependencies()) {
 
           dependencies <- self$get_dependencies(deep = TRUE)
 
-          purrr::walk(dependencies, function(rdo) {
+          dependencies_validated <-
+            purrr::map_lgl(dependencies, function(rdo) {
 
-            rdo$validate(deep = FALSE, verbose = verbose)
+              rdo$validate(deep = FALSE, verbose = verbose)
 
             })
 
@@ -319,22 +409,32 @@ RDO <-
 
         if (verbose) cat("Validating RDO: '", self_name, "' ... ", sep = "")
 
-        is_validated <- identical(self$data,
-                                  self$run_r_code(deep = FALSE,
-                                                  cache = FALSE,
-                                                  verbose = FALSE))
+        self_deep_r_code <- self$get_r_code(deep = TRUE)
 
-        private$status$is_validated <- is_validated
+        eval_data <- eval(expr = self_deep_r_code, envir = new.env())
+
+        is_validated <- identical(self$data,
+                                  eval_data)
+
+        if (is_validated)  private$set_status(status = "validated")
+        if (!is_validated) private$set_status(status = "invalidated")
+        # private$status$is_validated <- is_validated
 
         if (verbose) {
 
           if (is_validated) cat("done.\n") else
-            cat("unsuccessful! NOT validated!\n")
+            cat("NOT validated!\n")
 
         } # end if
 
         # invisible(
-          setNames(c(is_validated), self_name)
+        rdos_validated <- c(dependencies_validated,
+                            setNames(c(is_validated), self_name))
+
+        rdos_validated
+
+        # rdos_validated[self_name] <- all(rdos_validated)
+        # setNames(all(rdos_validated), self_name)
           # )
 
       } # end of validate
@@ -343,6 +443,7 @@ RDO <-
 
     # ACTIVE BINDINGS #########################################################
     active = list(
+
 
       r_code = function(value) {
 
@@ -356,12 +457,14 @@ RDO <-
 
           private$r_code_expression <- value
 
-          private$status$is_validated <- FALSE
+          # private$status$is_validated <- FALSE
 
+          private$set_status(status = "invalidated")
 
         } # end of if
-
       }, # end of r_code
+
+
 
       data = function(value) {
 
@@ -373,7 +476,9 @@ RDO <-
 
           private$data_cache <- value
 
-          private$status$is_validated <- FALSE
+          # private$status$is_validated <- FALSE
+
+          private$set_status(status = "invalidated")
 
         } # end of if
       } # end of data
@@ -387,18 +492,53 @@ RDO <-
 
       dependencies  = list(),
 
+      # _status ---------------------------------------------------------------
       status = list(
         created = NULL,
+        changed = NULL,
+        validated = NULL,
+        invalidated = NULL,
         is_validated = FALSE
       ),
 
-      # TODO: last_change
-      # TODO:
+      # TODO: validated
 
 
       data_cache = NULL,
 
-      r_code_expression = NULL
+      r_code_expression = NULL,
+
+      set_status = function(status = "changed"
+                            ) {
+
+        timestamp <- Sys.time()
+        attr(timestamp, "tzone") <- "UTC"
+
+        if (status == "created") {
+
+          private$status$created <- timestamp
+
+        }
+
+        if (status == "validated") {
+
+          private$status$is_validated <- TRUE
+          private$status$validated <- timestamp
+
+        }
+
+
+        if (status == "invalidated") {
+
+          private$status$is_validated <- FALSE
+          private$status$invalidated <- timestamp
+
+        }
+
+        # if (status == "changed") {}
+        private$status$changed <- timestamp
+
+      } # end of set_status
 
     ) # end of private
 
