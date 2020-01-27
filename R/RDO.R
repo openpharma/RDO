@@ -1,18 +1,4 @@
-# Hello, world!
-#
-# This is an example function named 'hello'
-# which prints 'Hello, world!'.
-#
-# You can learn more about package authoring with RStudio at:
-#
-#   http://r-pkgs.had.co.nz/
-#
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Ctrl + Shift + B'
-#   Check Package:             'Ctrl + Shift + E'
-#   Test Package:              'Ctrl + Shift + T'
-# usethis::use_test()
+
 #' @export
 
 RDO <-
@@ -28,8 +14,9 @@ RDO <-
                             dependencies = list()
                             ) {
 
-        # TODO: list of dendencies
-        # private$code_cached <- code
+        # TODO: named list of dendencies
+        # TODO: arguments checking
+
         private$name <- name
 
         private$set_status(status = "created")
@@ -44,7 +31,6 @@ RDO <-
         names(dependencies) <- dependency_names
 
         private$dependencies <- dependencies
-
 
       }, # end of initialize
 
@@ -79,6 +65,8 @@ RDO <-
         } # end of if
       }, # end of has_dependencies
 
+
+
       get_dependencies = function(deep = FALSE) {
 
         has_dependencies <- self$has_dependencies()
@@ -91,8 +79,7 @@ RDO <-
         nested_dependencies <-
           purrr::map(dependencies, function(rdo) {
 
-            rdo$get_dependencies(deep = TRUE) %>%
-              purrr::compact()
+            rdo$get_dependencies(deep = TRUE) %>% purrr::compact(.x = .)
 
           }) # end of map
 
@@ -154,6 +141,7 @@ RDO <-
       }, # end of get_r_code
 
 
+
       print_r_code = function(deep = FALSE) {
 
         r_code_text <-
@@ -187,14 +175,12 @@ RDO <-
 
       run_r_code = function(deep = FALSE,
                             cache = TRUE,
-                            # force = FALSE,
                             verbose = TRUE
                             ) {
 
         rdo_name <- self$get_name()
 
         if (verbose) cat("Evaluating RDO:", rdo_name, "... ")
-
 
 
         has_dependencies <- self$has_dependencies()
@@ -212,10 +198,7 @@ RDO <-
         } # end of if
 
 
-
         if (has_dependencies & deep) {
-
-          # TODO: self$invalidate(deep = TRUE)
 
           dependencies <- self$get_dependencies(deep = TRUE)
 
@@ -247,7 +230,6 @@ RDO <-
               rdo$run_r_code(deep = FALSE,
                              cache = cache,
                              verbose = verbose)
-
             } # end of if
           }) # end of walk
         } # end of if
@@ -274,7 +256,6 @@ RDO <-
         } # end of if
 
 
-
         if (cache) {
 
           self$data <- temp_data
@@ -287,13 +268,9 @@ RDO <-
 
         if (verbose) cat("...evaluation of", rdo_name, "completed.\n")
 
-
         invisible(temp_data)
 
       }, # end of if
-
-
-
 
 
 
@@ -337,6 +314,7 @@ RDO <-
         } # end of if
 
         is_validated <- all(are_validated, is_validated)
+
         return(is_validated)
 
       }, # end of is_validated
