@@ -8,14 +8,9 @@ RDO <-
     # PUBLIC ##################################################################
     public = list(
 
-      # TODO: print default rdo
-
       initialize = function(name,
                             dependencies = list()
                             ) {
-
-        # TODO: named list of dendencies
-        # TODO: arguments checking
 
         private$name <- name
 
@@ -163,9 +158,7 @@ RDO <-
           })
 
         r_code_text %>%
-          # paste(collapse = "\n") %>%
           cat(sep = "\n")
-        # r_code_text %>% cat(fill = TRUE)
 
         return(invisible(NULL))
 
@@ -262,13 +255,13 @@ RDO <-
 
           private$set_status(status = "validated")
 
-          # private$status$is_validated <- TRUE
-
         } # end of if
 
         if (verbose) cat("...evaluation of", rdo_name, "completed.\n")
 
-        invisible(temp_data)
+        if (cache == FALSE) return(temp_data)
+
+        invisible(self)
 
       }, # end of if
 
@@ -292,7 +285,7 @@ RDO <-
           are_validated <-
             purrr::map_lgl(dependecies, function(rdo) {
 
-              rdo_name <- rdo$get_name()
+              # rdo_name <- rdo$get_name()
 
               is_validated <- rdo$is_validated(deep = FALSE,
                                                verbose = verbose)
@@ -335,7 +328,7 @@ RDO <-
 
             rdo_name <- rdo$get_name()
 
-            rdo$invalidate(deep = FALSE, verbose = TRUE)
+            rdo$invalidate(deep = FALSE, verbose = verbose)
 
           })
 
@@ -347,15 +340,9 @@ RDO <-
 
         private$set_status(status = "invalidated")
 
-        # private$status$is_validated <- FALSE
-
         if (verbose) cat("done.\n")
 
-        invisible(
-          setNames(c(private$status$is_validated), self_name))
-
-
-        # TODO: deep == TRUE
+        invisible(self)
 
       }, # end of if
 
@@ -365,38 +352,47 @@ RDO <-
                           verbose = TRUE
                           ) {
 
+        has_dependencies <- self$has_dependencies()
 
-        # TODO: deep == TRUE
-        # TODO: step_by_step == FALSE
-        dependencies_validated <- c()
+        if (deep | !has_dependencies) {
 
-        if (deep & self$has_dependencies()) {
+          eval_envir <- new.env()
 
-          dependencies <- self$get_dependencies(deep = TRUE)
+        }
 
-          dependencies_validated <-
-            purrr::map_lgl(dependencies, function(rdo) {
+        if (!deep & has_dependencies) {
 
-              rdo$validate(deep = FALSE, verbose = verbose)
+          dependecies <- self$get_dependencies()
 
-            })
+          eval_envir <-
+            purrr::map(dependecies, function(rdo) {
 
-        } # end of if
+              rdo_name <- rdo$get_name()
+
+              is_validated <- rdo$is_validated(verbose = verbose)
+
+              if (!is_validated)
+                stop("Dependency object '", rdo_name, "' is not validated. ")
+
+              rdo$data
+
+              }) %>% setNames(names(dependecies))
+
+        }
 
         self_name <- self$get_name()
 
         if (verbose) cat("Validating RDO: '", self_name, "' ... ", sep = "")
 
-        self_deep_r_code <- self$get_r_code(deep = TRUE)
+        self_deep_r_code <- self$get_r_code(deep = deep)
 
-        eval_data <- eval(expr = self_deep_r_code, envir = new.env())
+        eval_data <- eval(expr = self_deep_r_code, envir = eval_envir)
 
         is_validated <- identical(self$data,
                                   eval_data)
 
         if (is_validated)  private$set_status(status = "validated")
         if (!is_validated) private$set_status(status = "invalidated")
-        # private$status$is_validated <- is_validated
 
         if (verbose) {
 
@@ -405,19 +401,186 @@ RDO <-
 
         } # end if
 
-        # invisible(
-        rdos_validated <- c(dependencies_validated,
-                            setNames(c(is_validated), self_name))
+        invisible(self)
 
-        rdos_validated
+      }, # end of validate
 
-        # rdos_validated[self_name] <- all(rdos_validated)
-        # setNames(all(rdos_validated), self_name)
-          # )
+      lock = function(deep = FALSE,
+                      verbose = TRUE
+                      ) {
 
-      } # end of validate
+        if (deep & self$has_dependencies()) {
+
+          dependencies <- self$get_dependencies(deep = deep)
+
+          purrr::walk(dependencies, function(rdo) {
+
+            rdo$lock(deep = FALSE, verbose = verbose)
+
+          })
+
+        } # end of if
+
+        self_name <- self$get_name()
+
+        if (verbose) cat("Locking RDO: '", self_name, "' ... ", sep = "")
+
+        private$status$is_locked <- TRUE
+
+        if (verbose) cat("done.\n")
+
+        invisible(self)
+
+      },
+
+
+      unlock = function(deep = FALSE,
+                        verbose = TRUE
+                        ) {
+
+        if (deep & self$has_dependencies()) {
+
+          dependencies <- self$get_dependencies(deep = deep)
+
+          purrr::walk(dependencies, function(rdo) {
+
+            rdo$unlock(deep = FALSE, verbose = verbose)
+
+          })
+
+        } # end of if
+
+        self_name <- self$get_name()
+
+        if (verbose) cat("Unlocking RDO: '", self_name, "' ... ", sep = "")
+
+        private$status$is_locked <- FALSE
+
+        if (verbose) cat("done.\n")
+
+        invisible(self)
+
+      },
+
+
+      is_locked = function(deep = FALSE,
+                           verbose = TRUE
+                           ) {
+
+        has_dependencies <- self$has_dependencies()
+
+        are_locked <- c()
+
+        if (has_dependencies & deep) {
+
+          dependencies <- self$get_dependencies(deep = deep)
+
+          are_locked <-
+            purrr::map_lgl(dependencies, function(rdo) {
+
+              rdo$is_locked(deep = FALSE, verbose = verbose)
+
+            }) %>% all()
+
+        } # end of if
+
+        self_name <- self$get_name()
+
+        if (verbose) cat("RDO: '", self_name, "' is ", sep = "")
+
+        is_locked <- private$status$is_locked
+
+        if (verbose) {
+
+          if (is_locked) cat("LOCKED!\n") else
+            cat("unlocked.\n")
+
+        }
+
+        is_locked <- all(are_locked, is_locked)
+
+        is_locked
+
+      },
+
+
+
+      get_cache_size = function(deep = FALSE,
+                                verbose = TRUE
+                                ) {
+
+        if (verbose) cat("Cache size: ")
+
+        cache_size <- list()
+
+        if (deep & self$has_dependencies()) {
+
+          dependencies <- self$get_dependencies(deep = deep)
+
+          cache_size <-
+            purrr::map(dependencies, function(rdo) {
+
+            object.size(rdo$data)
+
+          })
+
+        } # end of if
+
+        self_cache_size <- setNames(object.size(self$data), self$get_name())
+
+        cache_size <- c(cache_size, self_cache_size)
+
+        cache_size <-
+          purrr::map(cache_size, ~ `class<-`(.x, value = "object_size"))
+
+        cache_size_total <-
+          cache_size %>%
+          unlist() %>%
+          sum %>%
+          `class<-`(., value = "object_size")
+
+        if (verbose)
+          cat(format(x = cache_size_total, units = "Mb", digits = 4L), "\n")
+
+        invisible(cache_size)
+
+      },
+
+
+
+      prune = function(deep = FALSE,
+                       verbose = TRUE
+                       ) {
+
+        if (!self$has_dependencies())
+          stop("This RDO doesn't have any dependencies!")
+
+        dependencies <- self$get_dependencies(deep = deep)
+
+        purrr::walk(dependencies, function(rdo) {
+
+          rdo_name <- rdo$get_name()
+
+          is_locked <- rdo$is_locked(verbose = FALSE)
+
+          if (!is_locked) {
+
+            rdo$data <- NULL
+
+          }
+
+          if (verbose) cat("Data cache in RDO: '", rdo_name, "' was ",
+                           "cleared.\n", sep = "")
+
+        }) # end of walk
+
+        invisible(self)
+
+      } # end of prune
 
     ), # end of public
+
+
 
     # ACTIVE BINDINGS #########################################################
     active = list(
@@ -433,9 +596,10 @@ RDO <-
 
         } else {
 
-          private$r_code_expression <- value
+          if (private$status$is_locked)
+            stop("This RDO is locked! Cannot overwrite the r_code.")
 
-          # private$status$is_validated <- FALSE
+          private$r_code_expression <- value
 
           private$set_status(status = "invalidated")
 
@@ -452,9 +616,10 @@ RDO <-
 
         } else {
 
-          private$data_cache <- value
+          if (private$status$is_locked)
+            stop("This RDO is locked! Cannot overwrite the data cache.")
 
-          # private$status$is_validated <- FALSE
+          private$data_cache <- value
 
           private$set_status(status = "invalidated")
 
@@ -475,12 +640,9 @@ RDO <-
         created = NULL,
         changed = NULL,
         validated = NULL,
-        invalidated = NULL,
-        is_validated = FALSE
+        is_validated = FALSE,
+        is_locked = FALSE
       ),
-
-      # TODO: validated
-
 
       data_cache = NULL,
 
@@ -491,6 +653,9 @@ RDO <-
 
         timestamp <- Sys.time()
         attr(timestamp, "tzone") <- "UTC"
+
+        private$status$changed <- timestamp
+
 
         if (status == "created") {
 
@@ -505,16 +670,12 @@ RDO <-
 
         }
 
-
         if (status == "invalidated") {
 
           private$status$is_validated <- FALSE
-          private$status$invalidated <- timestamp
 
         }
 
-        # if (status == "changed") {}
-        private$status$changed <- timestamp
 
       } # end of set_status
 
