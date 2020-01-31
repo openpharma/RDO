@@ -343,7 +343,7 @@ test_that("printing r_code", {
     "^data_1_loading.*data_1_top_half.*data_1_bottom_half.*$")
 
   expect_output(
-    data_1_binding_rows$r_code,
+    cat(data_1_binding_rows$r_code),
     "^data_1_loading.*data_1_binding_rows .*$")
 
 })

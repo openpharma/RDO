@@ -172,7 +172,7 @@ RDO <-
 
 
 
-      print_r_code = function(deep = FALSE) {
+      print_r_code = function(deep = FALSE, verbose = TRUE) {
 
         r_code_text <-
           self$get_r_code(deep = deep) %>%
@@ -188,15 +188,17 @@ RDO <-
 
             code_line <- paste(code_line, collapse = "\n")
 
-            paste(code_line, "\n")
+            code_line
 
           }) # end of map_chr
 
         r_code_text <- paste(r_code_text, collapse = '\n')
 
-        r_code_text %>% cat()
+        r_code_text <- paste(r_code_text, "\n")
 
-        return(invisible(r_code_text))
+        if (verbose) r_code_text %>% cat()
+
+        invisible(r_code_text)
 
       }, # end of print_r_code
 
@@ -666,7 +668,7 @@ RDO <-
 
         if (missing(value)) {
 
-          self$print_r_code(deep = TRUE)
+          self$print_r_code(deep = TRUE, verbose = FALSE)
 
         } else {
 
