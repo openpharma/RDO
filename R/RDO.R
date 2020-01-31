@@ -16,16 +16,7 @@ RDO <-
 
         private$set_status(status = "created")
 
-        dependency_names <-
-          purrr::map_chr(dependencies, function(dependency) {
-
-            dependency$get_name()
-
-          })
-
-        names(dependencies) <- dependency_names
-
-        private$dependencies <- dependencies
+        self$add_dependencies(dependencies = dependencies)
 
       }, # end of initialize
 
@@ -59,6 +50,23 @@ RDO <-
 
         } # end of if
       }, # end of has_dependencies
+
+
+
+      add_dependencies = function(dependencies = list()) {
+
+        if (!is.list(dependencies)) dependencies <- list(dependencies)
+
+        purrr::walk(dependencies, function(rdo) {
+
+          rdo_name <- rdo$get_name()
+          private$dependencies[[rdo_name]] <- rdo
+
+        })
+
+        invisible(self)
+
+      }, # end of add_dependencies
 
 
 
@@ -98,6 +106,33 @@ RDO <-
 
       }, # end of get_dependencies
 
+
+      get_dependency_register = function() {
+
+        has_dependencies <- self$has_dependencies()
+
+        if (!has_dependencies) {
+
+          dependency_register <-
+            tibble::tibble(dependency = NA_character_,
+                           parent = self$get_name())
+
+          return(dependency_register)
+
+        } # end of if
+
+        dependencies <- self$get_dependencies()
+
+        purrr::map_df(dependencies, function(rdo) {
+
+          dplyr::bind_rows(
+            tibble::tibble(dependency = rdo$get_name(),
+                           parent = self$get_name()),
+            rdo$get_dependency_register())
+
+        }) # end of map
+
+      }, # end of get_dependency_register
 
 
       get_r_code = function(deep = FALSE
@@ -242,7 +277,7 @@ RDO <-
               if (!is_validated)
                 stop("Dependency object '", rdo_name, "' is not validated. ")
 
-              rdo$data
+              rdo$cache
 
               }) %>% setNames(names(dependecies)))
 
@@ -251,7 +286,7 @@ RDO <-
 
         if (cache) {
 
-          self$data <- temp_data
+          self$cache <- temp_data
 
           private$set_status(status = "validated")
 
@@ -284,8 +319,6 @@ RDO <-
 
           are_validated <-
             purrr::map_lgl(dependecies, function(rdo) {
-
-              # rdo_name <- rdo$get_name()
 
               is_validated <- rdo$is_validated(deep = FALSE,
                                                verbose = verbose)
@@ -374,7 +407,7 @@ RDO <-
               if (!is_validated)
                 stop("Dependency object '", rdo_name, "' is not validated. ")
 
-              rdo$data
+              rdo$cache
 
               }) %>% setNames(names(dependecies))
 
@@ -388,7 +421,7 @@ RDO <-
 
         eval_data <- eval(expr = self_deep_r_code, envir = eval_envir)
 
-        is_validated <- identical(self$data,
+        is_validated <- identical(self$cache,
                                   eval_data)
 
         if (is_validated)  private$set_status(status = "validated")
@@ -520,13 +553,13 @@ RDO <-
           cache_size <-
             purrr::map(dependencies, function(rdo) {
 
-            object.size(rdo$data)
+            object.size(rdo$cache)
 
           })
 
         } # end of if
 
-        self_cache_size <- setNames(object.size(self$data), self$get_name())
+        self_cache_size <- setNames(object.size(self$cache), self$get_name())
 
         cache_size <- c(cache_size, self_cache_size)
 
@@ -548,9 +581,9 @@ RDO <-
 
 
 
-      prune = function(deep = FALSE,
-                       verbose = TRUE
-                       ) {
+      prune_cache = function(deep = FALSE,
+                             verbose = TRUE
+                             ) {
 
         if (!self$has_dependencies())
           stop("This RDO doesn't have any dependencies!")
@@ -565,18 +598,60 @@ RDO <-
 
           if (!is_locked) {
 
-            rdo$data <- NULL
+            rdo$cache <- NULL
 
           }
 
-          if (verbose) cat("Data cache in RDO: '", rdo_name, "' was ",
+          if (verbose) cat("Cache in RDO: '", rdo_name, "' was ",
                            "cleared.\n", sep = "")
 
         }) # end of walk
 
         invisible(self)
 
-      } # end of prune
+      }, # end of prune
+
+      prune_dependencies = function(verbose = TRUE) {
+
+        dependency_register <- self$get_dependency_register() %>% na.omit()
+
+        duplicated_clones <-
+          dependency_register$dependency[
+            dependency_register$dependency %>% duplicated()] %>%
+          unique()
+
+        duplicated_clones <-
+          dependency_register[
+            dependency_register$dependency %in% duplicated_clones, ]
+
+        if (NROW(duplicated_clones) > 0) {
+
+          dependencies <- self$get_dependencies(deep = TRUE)
+
+          duplicated_clones %>%
+            purrr::pwalk(function(dependency, parent) {
+
+              if (verbose) {
+
+                cat("Prunning dependency:",
+                    dependencies[[dependency]]$get_name(),
+                    "in parent:",
+                    dependencies[[parent]]$get_name(),
+                    "... ")
+
+              }
+
+              dependencies[[parent]]$add_dependencies(dependencies[[dependency]])
+
+              if (verbose) cat("done.\n")
+
+            }) # end of pwalk
+
+        } # end of if
+
+        invisible(self)
+
+      } # end of prune_dependencies
 
     ), # end of public
 
@@ -608,7 +683,7 @@ RDO <-
 
 
 
-      data = function(value) {
+      cache = function(value) {
 
         if (missing(value)) {
 
@@ -617,14 +692,17 @@ RDO <-
         } else {
 
           if (private$status$is_locked)
-            stop("This RDO is locked! Cannot overwrite the data cache.")
+            stop("This RDO is locked! Cannot overwrite the RDO's cache.")
 
           private$data_cache <- value
 
           private$set_status(status = "invalidated")
 
         } # end of if
-      } # end of data
+      } # end of cache
+
+
+
 
     ), # end of active
 
@@ -648,8 +726,7 @@ RDO <-
 
       r_code_expression = NULL,
 
-      set_status = function(status = "changed"
-                            ) {
+      set_status = function(status = "changed") {
 
         timestamp <- Sys.time()
         attr(timestamp, "tzone") <- "UTC"
@@ -677,9 +754,28 @@ RDO <-
         }
 
 
-      } # end of set_status
+      }, # end of set_status
 
+
+      deep_clone = function(name, value) {
+
+        if (name == "dependencies") {
+
+          rdo_dependencies_cloned <-
+            purrr::map(value, function(rdo) {
+
+              value <- rdo$clone(deep = TRUE)
+
+            }) %>% setNames(names(value))
+
+          rdo_dependencies_cloned
+
+        } else {
+
+          value
+
+        }
+      } # end of deep_clone
     ) # end of private
-
 ) # end of RDO R6Class
 
