@@ -21,8 +21,8 @@ test_that("RDO initialization", {
     NULL)
 
   expect_equal(
-    data_1_loading$r_code,
-    NULL)
+    is.character(data_1_loading$r_code),
+    TRUE)
 
   expect_equal(
     data_1_loading$is_validated(verbose = FALSE),
@@ -43,18 +43,11 @@ test_that("RDO initialization", {
 })
 
 # _setting r_code -------------------------------------------------------------
-
 data_1_loading$r_code <- expression({
   data_1_loading <- mtcars
 })
 
 test_that("setting r_code", {capture_output({
-
-  expect_equal(
-    data_1_loading$r_code,
-    expression(data_1_loading = {
-      data_1_loading <- mtcars
-      }))
 
   expect_equal(
     data_1_loading$get_r_code(),
@@ -68,7 +61,7 @@ test_that("setting r_code", {capture_output({
 test_that("evaluation of r_code", {capture_output({
 
   expect_equal(
-    eval(data_1_loading$r_code, envir = new.env()),
+    eval(data_1_loading$get_r_code(), envir = new.env()),
     mtcars)
 
 })})
@@ -663,8 +656,6 @@ test_that("shared dependencies", {
 
 })
 
-
-
 test_that("deep cloning", {
 
   data_3_cloned <- data_3_tests$clone(deep = TRUE)
@@ -758,9 +749,8 @@ test_that("deep cloning", {
 })
 
 
-
 # _converting RDOs -------------------------------------------------------------
-capture.output(eval(expr = data_3_tests$r_code))
+capture.output(eval(expr = data_3_tests$get_r_code(deep = TRUE)))
 
 test_that("replacing RDOs", {
 
