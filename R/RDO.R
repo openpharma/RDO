@@ -188,7 +188,7 @@ RDO <-
 
             code_line <- paste(code_line, collapse = "\n")
 
-            code_line
+            paste(code_line, "\n")
 
           }) # end of map_chr
 
