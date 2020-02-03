@@ -82,25 +82,18 @@ RDO <-
         nested_dependencies <-
           purrr::map(dependencies, function(rdo) {
 
-            rdo$get_dependencies(deep = TRUE) %>% purrr::compact(.x = .)
+            purrr::compact(rdo$get_dependencies(deep = TRUE))
 
           }) # end of map
 
         dependencies <-
-          c(nested_dependencies,
-            dependencies) %>% unlist()
+          unlist(c(nested_dependencies, dependencies))
 
-        dependency_names <-
-         dependencies %>%
-         purrr::map_chr(~.x$get_name())
+        dependency_names <- purrr::map_chr(dependencies, ~ .x$get_name())
 
-        dependencies <-
-          dependencies %>%
-          setNames(dependency_names)
+        dependencies <- setNames(dependencies, dependency_names)
 
-        duplicated_dependecies <-
-          names(dependencies) %>%
-          duplicated()
+        duplicated_dependecies <- duplicated(names(dependencies))
 
         dependencies[!duplicated_dependecies]
 
@@ -157,9 +150,9 @@ RDO <-
 
           rdo$get_r_code(deep = FALSE)
 
-          }) %>%
-          unname() %>%
-          do.call(what = c, args = .)
+          })
+
+        r_code <- do.call(what = c, args = unname(r_code))
 
         r_code_self <- self$get_r_code(deep = FALSE)
         names(r_code_self) <- self$get_name()
@@ -175,10 +168,11 @@ RDO <-
       print_r_code = function(deep = FALSE, verbose = TRUE) {
 
         r_code_text <-
-          self$get_r_code(deep = deep) %>%
-          as.list() %>%
-          purrr::map(~ .x %>% as.character()) %>%
-          purrr::map_chr(function(code_line) {
+          purrr::map(as.list(self$get_r_code(deep = deep)),
+                     ~ as.character(.x))
+
+        r_code_text <-
+          purrr::map_chr(r_code_text, function(code_line) {
 
             if (code_line[1] == "{") {
 
@@ -186,9 +180,7 @@ RDO <-
 
             }
 
-            code_line <- paste(code_line, collapse = "\n")
-
-            code_line
+            paste(code_line, collapse = "\n")
 
           }) # end of map_chr
 
@@ -196,7 +188,7 @@ RDO <-
 
         r_code_text <- paste(r_code_text, "\n")
 
-        if (verbose) r_code_text %>% cat()
+        if (verbose) cat(r_code_text)
 
         invisible(r_code_text)
 
@@ -246,7 +238,9 @@ RDO <-
 
                 rdo$get_status()$changed
 
-              }) %>% unlist()
+              })
+
+            dependencies_changed <- unlist(dependencies_changed)
 
             self_validated <- self$get_status()$validated
 
@@ -269,9 +263,8 @@ RDO <-
 
           dependecies <- self$get_dependencies()
 
-          temp_data <- eval(
-            expr = self$get_r_code(deep = FALSE),
-            envir = purrr::map(dependecies, function(rdo) {
+          temp_envir <-
+            purrr::map(dependecies, function(rdo) {
 
               rdo_name <- rdo$get_name()
 
@@ -282,7 +275,12 @@ RDO <-
 
               rdo$cache
 
-              }) %>% setNames(names(dependecies)))
+            }) # end of map
+
+          temp_envir <- setNames(temp_envir, names(dependecies))
+
+          temp_data <- eval(expr = self$get_r_code(deep = FALSE),
+                            envir = temp_envir)
 
         } # end of if
 
@@ -328,7 +326,11 @@ RDO <-
 
               is_validated
 
-            }) %>% all()
+            })
+
+          are_validated <- all(are_validated)
+
+          are_validated
 
         } # end of if
 
@@ -412,9 +414,11 @@ RDO <-
 
               rdo$cache
 
-              }) %>% setNames(names(dependecies))
+            }) # end of map
 
-        }
+          eval_envir <- setNames(eval_envir, names(dependecies))
+
+        } # end of if
 
         self_name <- self$get_name()
 
@@ -516,7 +520,9 @@ RDO <-
 
               rdo$is_locked(deep = FALSE, verbose = verbose)
 
-            }) %>% all()
+            })
+
+          are_locked <- all(are_locked)
 
         } # end of if
 
@@ -569,11 +575,8 @@ RDO <-
         cache_size <-
           purrr::map(cache_size, ~ `class<-`(.x, value = "object_size"))
 
-        cache_size_total <-
-          cache_size %>%
-          unlist() %>%
-          sum %>%
-          `class<-`(., value = "object_size")
+        cache_size_total <- `class<-`(sum(unlist(cache_size)),
+                                      value = "object_size")
 
         if (verbose)
           cat(format(x = cache_size_total, units = "Mb", digits = 4L), "\n")
@@ -616,12 +619,13 @@ RDO <-
 
       prune_dependencies = function(verbose = TRUE) {
 
-        dependency_register <- self$get_dependency_register() %>% na.omit()
+        dependency_register <- self$get_dependency_register()
+
+        dependency_register <- na.omit(dependency_register)
 
         duplicated_clones <-
-          dependency_register$dependency[
-            dependency_register$dependency %>% duplicated()] %>%
-          unique()
+          unique(dependency_register$dependency[
+            duplicated(dependency_register$dependency)])
 
         duplicated_clones <-
           dependency_register[
@@ -631,25 +635,23 @@ RDO <-
 
           dependencies <- self$get_dependencies(deep = TRUE)
 
-          duplicated_clones %>%
-            purrr::pwalk(function(dependency, parent) {
+          purrr::pwalk(duplicated_clones, function(dependency, parent) {
 
-              if (verbose) {
+            if (verbose) {
 
-                cat("Prunning dependency:",
-                    dependencies[[dependency]]$get_name(),
-                    "in parent:",
-                    dependencies[[parent]]$get_name(),
-                    "... ")
+              cat("Prunning dependency:",
+                  dependencies[[dependency]]$get_name(),
+                  "in parent:",
+                  dependencies[[parent]]$get_name(),
+                  "... ")
 
-              }
+            } # end of if
 
-              dependencies[[parent]]$add_dependencies(dependencies[[dependency]])
+            dependencies[[parent]]$add_dependencies(dependencies[[dependency]])
 
-              if (verbose) cat("done.\n")
+            if (verbose) cat("done.\n")
 
-            }) # end of pwalk
-
+          }) # end of pwalk
         } # end of if
 
         invisible(self)
@@ -767,7 +769,10 @@ RDO <-
 
               value <- rdo$clone(deep = TRUE)
 
-            }) %>% setNames(names(value))
+            })
+
+          rdo_dependencies_cloned <-
+            setNames(rdo_dependencies_cloned, names(value))
 
           rdo_dependencies_cloned
 
@@ -775,8 +780,10 @@ RDO <-
 
           value
 
-        }
+        } # end of if
       } # end of deep_clone
+
     ) # end of private
+
 ) # end of RDO R6Class
 

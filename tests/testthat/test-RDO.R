@@ -488,25 +488,19 @@ test_that("adding test RDO", {
 test_that("prunning cache", {
 
   expect_equal(
-    data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE) %>%
-      unlist() %>%
-      sum(),
+    sum(unlist(data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE))),
     48256)
 
   expect_equal(
-    (data_3_tests$prune_cache(
+    sum(unlist(data_3_tests$prune_cache(
       deep = TRUE, verbose = FALSE)$get_cache_size(deep = TRUE,
-                                                   verbose = FALSE)) %>%
-      unlist() %>%
-      sum(),
+                                                   verbose = FALSE))),
     6144)
 
   data_3_tests$run_r_code(deep = TRUE, verbose = FALSE)
 
   expect_equal(
-    data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE) %>%
-      unlist() %>%
-      sum(),
+    sum(unlist(data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE))),
     48256)
 
 })
@@ -516,9 +510,7 @@ test_that("prunning cache", {
 test_that("prunning tree with locked RDOs", {
 
   expect_equal(
-    data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE) %>%
-      unlist() %>%
-      sum(),
+    sum(unlist(data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE))),
     48256)
 
   expect_equal(
@@ -530,11 +522,9 @@ test_that("prunning tree with locked RDOs", {
     TRUE)
 
   expect_equal(
-    (data_3_tests$prune_cache(
+    sum(unlist(data_3_tests$prune_cache(
       deep = TRUE, verbose = FALSE)$get_cache_size(deep = TRUE,
-                                                   verbose = FALSE)) %>%
-      unlist() %>%
-      sum(),
+                                                   verbose = FALSE))),
     20608)
 
   expect_equal(
