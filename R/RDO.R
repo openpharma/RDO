@@ -1,4 +1,5 @@
 
+#' @import data.table
 #' @export
 
 RDO <-

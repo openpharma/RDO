@@ -12,4 +12,6 @@ LazyData: true
 Suggests: 
     testthat (>= 2.1.0)
 Imports: 
-    purrr
+    purrr,
+    data.table
+RoxygenNote: 7.0.2
