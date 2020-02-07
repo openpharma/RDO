@@ -735,9 +735,22 @@ test_that("deep cloning", {
         )$get_dependencies()$data_3_binding_datasets$run_r_code(
           deep = TRUE, verbose = FALSE)$cache)))
 
-
 })
 
+test_that("prunning dependencies in top parent", {
+
+  expect_true({
+    data_3_cloned <- data_3_tests$clone(deep = TRUE)
+
+    data_3_cloned$add_dependencies(
+      dependencies = data_3_tests$get_dependencies(TRUE)$data_1_binding_rows)
+
+    data_3_cloned$prune_dependencies(
+      verbose = FALSE)$get_dependency_register()
+
+    TRUE
+  })
+})
 
 # _converting RDOs -------------------------------------------------------------
 capture.output(eval(expr = data_3_tests$get_r_code(deep = TRUE)))

@@ -640,15 +640,22 @@ RDO <-
 
             if (verbose) {
 
-              cat("Prunning dependency:",
-                  dependencies[[dependency]]$get_name(),
-                  "in parent:",
-                  dependencies[[parent]]$get_name(),
-                  "... ")
+              cat("Prunning dependency:", dependency,
+                  "in parent:", parent, "... ")
 
             } # end of if
 
-            dependencies[[parent]]$add_dependencies(dependencies[[dependency]])
+            if (parent == self$get_name()) {
+
+              self$add_dependencies(
+                dependencies = dependencies[[dependency]])
+
+            } else {
+
+              dependencies[[parent]]$add_dependencies(
+                dependencies = dependencies[[dependency]])
+
+            }
 
             if (verbose) cat("done.\n")
 
@@ -717,7 +724,7 @@ RDO <-
 
       dependencies  = list(),
 
-      # _status ---------------------------------------------------------------
+      # status ---------------------------------------------------------------
       status = list(
         created = NULL,
         changed = NULL,
