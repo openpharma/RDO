@@ -145,9 +145,12 @@ RDO <-
       },
 
 
-      run_r_code = function(deep = FALSE,
-                            cache = TRUE,
-                            verbose = TRUE) {
+      run = function(deep = FALSE,
+                     cache = TRUE,
+                     verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         rdo_name <- self$get_name()
 
@@ -186,9 +189,9 @@ RDO <-
 
             if (!is_validated | dependencies_changed) {
 
-              rdo$run_r_code(deep = FALSE,
-                             cache = cache,
-                             verbose = verbose)
+              rdo$run(deep = FALSE,
+                      cache = cache,
+                      verbose = verbose)
             }
           })
         }
@@ -228,7 +231,10 @@ RDO <-
 
 
       is_validated = function(deep = FALSE,
-                              verbose = TRUE) {
+                              verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         self_name        <- self$get_name()
         has_dependencies <- self$has_dependencies()
@@ -259,7 +265,10 @@ RDO <-
 
 
       invalidate = function(deep = FALSE,
-                            verbose = TRUE) {
+                            verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         has_dependencies <- self$has_dependencies()
 
@@ -283,7 +292,10 @@ RDO <-
 
 
       validate = function(deep = FALSE,
-                          verbose = TRUE) {
+                          verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         has_dependencies <- self$has_dependencies()
 
@@ -333,7 +345,10 @@ RDO <-
 
 
       lock = function(deep = FALSE,
-                      verbose = TRUE) {
+                      verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         if (deep & self$has_dependencies()) {
 
@@ -355,7 +370,10 @@ RDO <-
 
 
       unlock = function(deep = FALSE,
-                        verbose = TRUE) {
+                        verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         if (deep & self$has_dependencies()) {
 
@@ -377,7 +395,10 @@ RDO <-
 
 
       is_locked = function(deep = FALSE,
-                           verbose = TRUE) {
+                           verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         has_dependencies <- self$has_dependencies()
         are_locked <- c()
@@ -409,7 +430,10 @@ RDO <-
 
 
       get_cache_size = function(deep = FALSE,
-                                verbose = TRUE) {
+                                verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         if (verbose) cat("Cache size: ")
 
@@ -444,7 +468,10 @@ RDO <-
 
 
       prune_cache = function(deep = FALSE,
-                             verbose = TRUE) {
+                             verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         if (!self$has_dependencies())
           stop("This RDO doesn't have any dependencies!")
@@ -466,7 +493,10 @@ RDO <-
       },
 
 
-      prune_dependencies = function(verbose = TRUE) {
+      prune_dependencies = function(verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         dependency_register <- self$get_dependency_register()
 
@@ -591,9 +621,8 @@ RDO <-
             setNames(rdo_dependencies_cloned, names(value))
 
           rdo_dependencies_cloned
-        } else {
-          value
-        }
+
+        } else {value}
       }
     )
  )

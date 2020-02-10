@@ -1,67 +1,186 @@
 # library(testthat)
 # RDO::RDO$debug("get_dependencies")
 # RDO::RDO$undebug("get_dependencies")
+# Sys.setenv("RDO_VERBOSE" = FALSE)
 options(digits.secs = 6)
 
-# Single RDO without dependencies #############################################
-context("Single RDO without dependencies")
+# RDOs definitions ############################################################
+data_mtcars <- RDO::RDO$new(name = "data_mtcars")
+
+data_mtcars$r_code <- expression({
+  data_mtcars <- mtcars
+})
+
+
+mtcars_half_top <-
+  RDO::RDO$new(name = "mtcars_half_top",
+               dependencies = list(data_mtcars))
+
+mtcars_half_top$r_code <- expression({
+  mtcars_half_top <- head(data_mtcars, 16)
+})
+
+
+mtcars_half_bottom <-
+  RDO::RDO$new(name = "mtcars_half_bottom",
+               dependencies = list(data_mtcars))
+
+mtcars_half_bottom$r_code <- expression({
+  mtcars_half_bottom <- tail(data_mtcars, 16)
+})
+
+
+mtcars_whole <-
+  RDO::RDO$new(name = "mtcars_whole",
+               dependencies = list(mtcars_half_top,
+                                   mtcars_half_bottom))
+
+mtcars_whole$r_code <- expression({
+  mtcars_whole <- rbind(mtcars_half_top,
+                        mtcars_half_bottom)
+})
+
+
+data_iris <-
+  RDO::RDO$new(name = "data_iris")
+
+data_iris$r_code <- expression({
+  data_iris <- iris
+})
+
+
+iris_selected_rows <-
+  RDO::RDO$new(name = "iris_selected_rows",
+               dependencies = list(data_iris))
+
+iris_selected_rows$r_code <- expression({
+  set.seed(1234)
+  sampled_rows <- c(rep(TRUE, 32), rep(FALSE, NROW(data_iris) - 32))
+  iris_selected_rows <- data_iris[sample(sampled_rows, NROW(data_iris)), ]
+})
+
+
+iris_selected_columns <-
+  RDO::RDO$new(name = "iris_selected_columns",
+               dependencies = list(iris_selected_rows))
+
+iris_selected_columns$r_code <- expression({
+  iris_selected_columns <- iris_selected_rows[, c("Species", "Petal.Width")]
+})
+
+
+iris_mtcars <-
+  RDO::RDO$new(name = "iris_mtcars",
+               dependencies = list(mtcars_whole,
+                                   iris_selected_columns))
+
+iris_mtcars$r_code <- expression({
+  iris_mtcars <- cbind(iris_selected_columns, mtcars_whole)
+})
+
+
+iris_mtcars_test <-
+  RDO::RDO$new(name = "iris_mtcars_test",
+               dependencies = list(iris_mtcars))
+
+iris_mtcars_test$r_code <- expression({
+
+  stopifnot("mpg" %in% names(iris_mtcars))
+  iris_mtcars <- iris_mtcars
+
+})
+
+
+# RDO without dependencies ####################################################
+context("RDO without dependencies")
 
 # _RDO initialization ---------------------------------------------------------
+test_that("RDO after initialization", {
 
-data_1_loading <- RDO::RDO$new(name = "data_1_loading")
-
-test_that("RDO initialization", {
-
-  expect_equal(
-    data_1_loading$get_name(),
-    "data_1_loading")
+  data_mtcars$r_code <-  NULL
 
   expect_equal(
-    data_1_loading$cache,
+    data_mtcars$get_name(),
+    "data_mtcars")
+
+  expect_equal(
+    data_mtcars$cache,
     NULL)
 
   expect_equal(
-    is.character(data_1_loading$r_code),
-    TRUE)
+    as.numeric(data_mtcars$get_cache_size()$data_mtcars),
+    0)
+
+  # expect_equal(
+  #   is.character(data_mtcars$r_code),
+  #   TRUE)
 
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$get_r_code(),
+    NULL)
+
+  expect_equal(
+    data_mtcars$is_validated(),
     FALSE)
 
   expect_equal(
-    class(data_1_loading$get_status()),
+    class(data_mtcars$get_status()),
     "list")
 
   expect_equal(
-    data_1_loading$get_status()$is_validated,
+    data_mtcars$get_status()$is_validated,
     FALSE)
 
   expect_equal(
-    class(data_1_loading$get_status()$created),
+    data_mtcars$get_status()$is_locked,
+    FALSE)
+
+  expect_equal(
+    class(data_mtcars$get_status()$created),
     c("POSIXct", "POSIXt"))
+
+  expect_equal(
+    class(data_mtcars$get_status()$changed),
+    c("POSIXct", "POSIXt"))
+
+  expect_equal(
+    data_mtcars$has_dependencies(),
+    FALSE)
+
+  expect_equal(
+    data_mtcars$get_dependencies(),
+    list())
 
 })
 
 # _setting r_code -------------------------------------------------------------
-data_1_loading$r_code <- expression({
-  data_1_loading <- mtcars
+data_mtcars$r_code <- expression({
+  data_mtcars <- mtcars
 })
 
 test_that("setting r_code", {capture_output({
 
   expect_equal(
-    data_1_loading$get_r_code(),
-    expression(data_1_loading = {
-      data_1_loading <- mtcars
+    data_mtcars$get_r_code(),
+    expression(data_mtcars = {
+      data_mtcars <- mtcars
     }))
 
 })})
 
-# _evaluation of r_code ======================================================
-test_that("evaluation of r_code", {capture_output({
+# _running of r_code -------------------------------------------------------
+test_that("running r_code", {capture_output({
 
   expect_equal(
-    eval(data_1_loading$get_r_code(), envir = new.env()),
+    eval(data_mtcars$get_r_code(), envir = new.env()),
+    mtcars)
+
+  expect_equal(
+    eval(data_mtcars$get_r_code(deep = TRUE), envir = new.env()),
+    mtcars)
+
+  expect_equal(
+    data_mtcars$run(cache = FALSE),
     mtcars)
 
 })})
@@ -69,80 +188,71 @@ test_that("evaluation of r_code", {capture_output({
 # _caching the data -----------------------------------------------------------
 test_that("running r_code and caching the data", {
 
-  data_1_loading$cache <- NULL
-
   expect_equal(
-    data_1_loading$cache,
+    data_mtcars$cache,
     NULL)
 
   expect_equal(
-    data_1_loading$run_r_code(cache = FALSE,
-                              verbose = FALSE),
+    data_mtcars$run(cache = FALSE),
     mtcars)
 
   expect_equal(
-    data_1_loading$cache,
+    data_mtcars$cache,
     NULL)
 
   expect_equal(
-    data_1_loading$run_r_code(verbose = FALSE)$cache,
-    mtcars)
-
-  expect_equal(
-    data_1_loading$cache,
+    data_mtcars$run()$cache,
     mtcars)
 
 })
 
-
-
 # _implicit (in)validation ----------------------------------------------------
 test_that("implicit (in)validation", {
 
-  data_1_loading$cache <- mtcars
-
-  data_1_loading$r_code <- expression({
-    data_1_loading <- iris
-  })
-
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
-    FALSE)
-
-  expect_equal(
-    data_1_loading$run_r_code(verbose = FALSE)$cache,
-    iris)
-
-  expect_equal(
-    data_1_loading$cache,
-    iris)
-
-  expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$is_validated(),
     TRUE)
 
-  data_1_loading$r_code <- expression({
-    data_1_loading <- mtcars
+  data_mtcars$r_code <- expression({
+    data_mtcars <- iris
   })
 
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$is_validated(),
     FALSE)
 
   expect_equal(
-    data_1_loading$cache,
+    data_mtcars$run()$is_validated(),
+    TRUE)
+
+  data_mtcars$cache <- mtcars
+
+  expect_equal(
+    data_mtcars$is_validated(),
+    FALSE)
+
+  expect_equal(
+    data_mtcars$run()$is_validated(),
+    TRUE)
+
+  expect_equal(
+    data_mtcars$cache,
     iris)
 
+  data_mtcars$r_code <- expression({
+    data_mtcars <- mtcars
+  })
+
   expect_equal(
-    data_1_loading$run_r_code(verbose = FALSE)$cache,
+    data_mtcars$is_validated(),
+    FALSE)
+
+  expect_equal(
+    data_mtcars$run()$cache,
     mtcars)
 
   expect_equal(
-    data_1_loading$cache,
-    mtcars)
-
-  expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$is_validated(),
     TRUE)
 
 })
@@ -151,216 +261,115 @@ test_that("implicit (in)validation", {
 # _explicit (in)validation ----------------------------------------------------
 test_that("explicit (in)validation", {
 
-  data_1_loading$r_code <- expression({
-    data_1_loading <- mtcars
-  })
-
-  data_1_loading$run_r_code(verbose = FALSE)
-
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$run()$is_validated(),
     TRUE)
 
   expect_equal(
-    data_1_loading$invalidate(verbose = FALSE)$is_validated(verbose = FALSE),
+    data_mtcars$invalidate()$is_validated(),
     FALSE)
 
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
-    FALSE)
-
-  expect_equal(
-    eval(data_1_loading$get_r_code(), envir = new.env()),
-    data_1_loading$cache)
-
-  expect_equal(
-    data_1_loading$validate(verbose = FALSE)$is_validated(verbose = FALSE),
+    data_mtcars$validate()$is_validated(),
     TRUE)
 
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
-    TRUE)
-
-  data_1_loading$cache <- iris
-
-  expect_equal(
-    data_1_loading$validate(verbose = FALSE)$is_validated(verbose = FALSE),
-    FALSE)
-
-  data_1_loading$cache <- mtcars
-
-  expect_equal(
-    data_1_loading$validate(verbose = FALSE)$is_validated(verbose = FALSE),
+    data_mtcars$invalidate()$run()$is_validated(),
     TRUE)
 
 })
 
-
-
-
-
-# Multiple RDOs with dependencies #############################################
-context("Multiple RDOs with dependencies")
-
-data_1_top_half <-
-  RDO::RDO$new(name = "data_1_top_half",
-               dependencies = list(data_1_loading))
-
-data_1_bottom_half <-
-  RDO::RDO$new(name = "data_1_bottom_half",
-               dependencies = list(data_1_loading))
-
-data_1_binding_rows <-
-  RDO::RDO$new(name = "data_1_binding_rows",
-               dependencies = list(data_1_top_half,
-                                   data_1_bottom_half))
-
-
-data_2_loading <-
-  RDO::RDO$new(name = "data_2_loading")
-
-data_2_select_rows <-
-  RDO::RDO$new(name = "data_2_select_rows",
-               dependencies = list(data_2_loading))
-
-data_2_select_cols <-
-  RDO::RDO$new(name = "data_2_select_cols",
-               dependencies = list(data_2_select_rows))
-
-
-
-data_3_binding_datasets <-
-  RDO::RDO$new(name = "data_3_binding_datasets",
-               dependencies = list(data_1_binding_rows,
-                                   data_2_select_cols))
-
-
+# RDO with dependencies #######################################################
+context("RDO with dependencies")
 
 # _checking dependencies ------------------------------------------------------
 test_that("checking dependencies", {
 
   expect_equal(
-    names(data_1_top_half$get_dependencies()),
-    c("data_1_loading"))
-
-  expect_equal(
-    names(data_1_bottom_half$get_dependencies()),
-    c("data_1_loading"))
-
-  expect_equal(
-    names(data_1_binding_rows$get_dependencies()),
-    c("data_1_top_half", "data_1_bottom_half"))
-
-  expect_equal(
-    data_1_loading$has_dependencies(),
-    FALSE)
-
-  expect_equal(
-    data_1_top_half$has_dependencies(),
+    mtcars_half_top$has_dependencies(),
     TRUE)
 
   expect_equal(
-    data_1_bottom_half$has_dependencies(),
+    mtcars_half_bottom$has_dependencies(),
     TRUE)
 
   expect_equal(
-    data_1_binding_rows$has_dependencies(),
+    mtcars_whole$has_dependencies(),
     TRUE)
 
   expect_equal(
-    names(data_1_binding_rows$get_dependencies(deep = TRUE)),
-    c("data_1_loading", "data_1_top_half", "data_1_bottom_half"))
+    names(mtcars_half_top$get_dependencies()),
+    c("data_mtcars"))
 
   expect_equal(
-    names(data_3_binding_datasets$get_dependencies(deep = TRUE)),
-    c("data_1_loading",
-      "data_1_top_half", "data_1_bottom_half",
-      "data_2_loading", "data_2_select_rows", "data_1_binding_rows",
-      "data_2_select_cols"))
+    names(mtcars_half_bottom$get_dependencies()),
+    c("data_mtcars"))
+
+  expect_equal(
+    names(mtcars_whole$get_dependencies()),
+    c("mtcars_half_top", "mtcars_half_bottom"))
+
+  expect_equal(
+    names(mtcars_whole$get_dependencies(deep = TRUE)),
+    c("data_mtcars", "mtcars_half_top", "mtcars_half_bottom"))
+
+  expect_equal(
+    names(iris_mtcars$get_dependencies(deep = TRUE)),
+    c("data_mtcars",
+      "mtcars_half_top", "mtcars_half_bottom",
+      "data_iris", "iris_selected_rows", "mtcars_whole",
+      "iris_selected_columns"))
 
 })
 
-# _setting r_code -------------------------------------------------------------
-
-data_1_top_half$r_code <- expression({
-  data_1_top_half <- head(data_1_loading, NROW(mtcars)/2)
-})
-
-data_1_bottom_half$r_code <- expression({
-  data_1_bottom_half <- tail(data_1_loading, NROW(mtcars)/2)
-})
-
-data_1_binding_rows$r_code <- expression({
-  data_1_binding_rows <- rbind(data_1_top_half, data_1_bottom_half)
-})
-
-data_2_loading$r_code <- expression({
-  data_2_loading <- iris
-})
-
-data_2_select_rows$r_code <- expression({
-  set.seed(1234)
-  sampled_rows <- c(rep(TRUE, 32), rep(FALSE, NROW(iris) - 32))
-  data_2_select_rows <- data_2_loading[sample(sampled_rows, NROW(iris)), ]
-})
-
-data_2_select_cols$r_code <- expression({
-  data_2_select_cols <- data_2_select_rows[, c("Species", "Petal.Width")]
-})
-
-data_3_binding_datasets$r_code <- expression({
-  data_3_binding_datasets <- cbind(data_2_select_cols, data_1_binding_rows)
-})
-
+# _getting r_code -------------------------------------------------------------
 test_that("getting r_code", {
 
   expect_equal(
-    names(data_3_binding_datasets$get_r_code()),
-    c("data_3_binding_datasets"))
+    names(iris_mtcars$get_r_code()),
+    c("iris_mtcars"))
 
   expect_equal(
-    names(data_3_binding_datasets$get_r_code(deep = TRUE)),
-    c("data_1_loading",
-      "data_1_top_half", "data_1_bottom_half",
-      "data_2_loading",
-      "data_2_select_rows",
-      "data_1_binding_rows",
-      "data_2_select_cols",
-      "data_3_binding_datasets"))
+    names(iris_mtcars$get_r_code(deep = TRUE)),
+    c("data_mtcars",
+      "mtcars_half_top", "mtcars_half_bottom",
+      "data_iris",
+      "iris_selected_rows",
+      "mtcars_whole",
+      "iris_selected_columns",
+      "iris_mtcars"))
 
 })
-
 
 # _printing r_code -----------------------------------------------------------
 test_that("printing r_code", {
 
   expect_output(
-    data_1_binding_rows$print_r_code(),
-    "^data_1_binding_rows.*$")
+    mtcars_whole$print_r_code(),
+    "^mtcars_whole.*$")
 
   expect_output(
-    data_1_binding_rows$print_r_code(deep = TRUE),
-    "^data_1_loading.*data_1_top_half.*data_1_bottom_half.*$")
+    mtcars_whole$print_r_code(deep = TRUE),
+    "^data_mtcars.*mtcars_half_top.*mtcars_half_bottom.*$")
 
-  expect_output(
-    cat(data_1_binding_rows$r_code),
-    "^data_1_loading.*data_1_binding_rows .*$")
+  # expect_output(
+  #   cat(mtcars_whole$r_code),
+  #   "^data_mtcars.*mtcars_whole .*$")
 
 })
-
 
 # _running r_code deep-------------------------------------------------------
 test_that("running r_code deep", {
 
   expect_equal(
-    data_1_binding_rows$is_validated(verbose = FALSE),
+    mtcars_whole$is_validated(),
     FALSE)
 
   expect_error(
-    (data_3_binding_datasets$run_r_code(verbose = FALSE)))
+    (mtcars_whole$run()))
 
   expect_equal(
-    data_3_binding_datasets$run_r_code(deep = TRUE, verbose = FALSE)$cache,
+    iris_mtcars$run(deep = TRUE)$cache,
     {
       set.seed(1234)
       sampled_rows <- c(rep(TRUE, 32), rep(FALSE, NROW(iris) - 32))
@@ -370,60 +379,54 @@ test_that("running r_code deep", {
     })
 
   expect_output(
-    data_3_binding_datasets$run_r_code(deep = TRUE, verbose = TRUE),
-    "^.*data_1_binding_rows.*data_2_select_cols' is validated.*$")
+    iris_mtcars$run(deep = TRUE, verbose = TRUE),
+    "^.*mtcars_whole.*iris_selected_columns' is validated.*$")
 
 })
-
-
-
 
 # _invalidating tree element --------------------------------------------------
 test_that("invalidating tree element", {
 
   expect_equal(
-    data_3_binding_datasets$is_validated(verbose = FALSE),
+    mtcars_whole$is_validated(),
     TRUE)
 
   expect_equal(
-    data_3_binding_datasets$is_validated(deep = TRUE, verbose = FALSE),
+    mtcars_whole$is_validated(deep = TRUE),
     TRUE)
 
   expect_equal(
-    (data_2_select_rows$invalidate(verbose = FALSE)$is_validated(
-      verbose = FALSE)),
+    iris_selected_rows$invalidate()$is_validated(),
     FALSE)
 
   expect_equal(
-    data_3_binding_datasets$is_validated(deep = TRUE, verbose = FALSE),
+    iris_mtcars$is_validated(deep = TRUE),
     FALSE)
 
   expect_output(
-    data_3_binding_datasets$is_validated(deep = TRUE),
+    iris_mtcars$is_validated(deep = TRUE, verbose = TRUE),
     "^.*NOT VALIDATED.*$")
 
   expect_equal(
-    data_2_select_rows$validate(verbose = FALSE)$is_validated(
-      verbose = FALSE),
+    iris_selected_rows$validate()$is_validated(),
     TRUE)
 
   expect_equal(
-    data_3_binding_datasets$is_validated(deep = TRUE, verbose = FALSE),
+    mtcars_whole$is_validated(deep = TRUE),
     TRUE)
 
-  data_2_select_rows$cache <- NULL
+  iris_selected_rows$cache <- NULL
 
   expect_equal(
-    data_2_select_rows$validate(verbose = FALSE)$is_validated(
-      verbose = FALSE),
+    iris_selected_rows$validate()$is_validated(),
     FALSE)
 
   expect_output(
-    data_3_binding_datasets$run_r_code(deep = TRUE, verbose = TRUE),
+    iris_mtcars$run(deep = TRUE, verbose = TRUE),
     "^.*have changed!.*$")
 
   expect_equal(
-    data_2_select_rows$is_validated(verbose = FALSE),
+    iris_selected_rows$is_validated(),
     TRUE)
 
 })
@@ -432,110 +435,93 @@ test_that("invalidating tree element", {
 # _invalidating deeply --------------------------------------------------------
 test_that("invalidating deeply", {
 
-  data_3_binding_datasets$invalidate(deep = TRUE, verbose = FALSE)
-
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$invalidate(deep = TRUE)$is_validated(),
     FALSE)
 
-  data_3_binding_datasets$run_r_code(deep = TRUE, verbose = FALSE)
-
   expect_equal(
-    data_1_loading$is_validated(verbose = FALSE),
+    data_mtcars$run(deep = TRUE)$is_validated(),
     TRUE)
 
   expect_equal(
-    data_3_binding_datasets$is_validated(deep = TRUE, verbose = FALSE),
+    mtcars_whole$is_validated(deep = TRUE),
     TRUE)
 
 })
 
+# _testing RDO ----------------------------------------------------------------
+test_that("testing RDO", {
 
+  expect_true(
+    iris_mtcars_test$run(deep = TRUE)$is_validated())
 
-# _adding test RDO -----------------------------------------------------------
-data_3_tests <-
-  RDO::RDO$new(name = "data_3_tests",
-               dependencies = list(data_3_binding_datasets))
-
-data_3_tests$r_code <- expression({
-
-  stopifnot("mpg" %in% names(data_3_binding_datasets))
-  data_3_tests <- data_3_binding_datasets
-
-})
-
-data_3_tests$run_r_code(verbose = FALSE)
-
-test_that("adding test RDO", {
-
-  data_1_loading$r_code <- expression({
-    data_1_loading <- iris
+  data_mtcars$r_code <- expression({
+    data_mtcars <- iris
   })
 
   expect_error(
-    data_3_tests$run_r_code(deep = TRUE, verbose = FALSE))
+    iris_mtcars_test$run(deep = TRUE))
 
-  data_1_loading$r_code <- expression({
-    data_1_loading <- mtcars
+  data_mtcars$r_code <- expression({
+    data_mtcars <- mtcars
   })
 
-  data_3_tests$run_r_code(deep = TRUE, verbose = FALSE)
+  expect_true(
+    iris_mtcars_test$run(deep = TRUE)$is_validated())
 
 })
-
 
 # _prunning cache -------------------------------------------------------------
 test_that("prunning cache", {
 
   expect_equal(
-    sum(unlist(data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE))),
+    sum(unlist(iris_mtcars_test$get_cache_size(deep = TRUE))),
     48256)
 
   expect_equal(
-    sum(unlist(data_3_tests$prune_cache(
-      deep = TRUE, verbose = FALSE)$get_cache_size(deep = TRUE,
-                                                   verbose = FALSE))),
+    sum(unlist(
+      iris_mtcars_test$prune_cache(deep = TRUE)$get_cache_size(deep = TRUE)
+    )),
     6144)
 
-  data_3_tests$run_r_code(deep = TRUE, verbose = FALSE)
-
   expect_equal(
-    sum(unlist(data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE))),
+    sum(unlist(
+      iris_mtcars_test$run(deep = TRUE)$get_cache_size(deep = TRUE)
+    )),
     48256)
 
 })
-
 
 # _prunning tree with locked RDOs ---------------------------------------------
 test_that("prunning tree with locked RDOs", {
 
   expect_equal(
-    sum(unlist(data_3_tests$get_cache_size(deep = TRUE, verbose = FALSE))),
+    sum(unlist(iris_mtcars_test$get_cache_size(deep = TRUE))),
     48256)
 
   expect_equal(
-    data_1_loading$lock(verbose = FALSE)$is_locked(verbose = FALSE),
+    data_mtcars$lock()$is_locked(),
     TRUE)
 
   expect_equal(
-    data_2_loading$lock(verbose = FALSE)$is_locked(verbose = FALSE),
+    data_iris$lock()$is_locked(),
     TRUE)
 
   expect_equal(
-    sum(unlist(data_3_tests$prune_cache(
-      deep = TRUE, verbose = FALSE)$get_cache_size(deep = TRUE,
-                                                   verbose = FALSE))),
+    sum(unlist(
+      iris_mtcars_test$prune_cache(deep = TRUE)$get_cache_size(deep = TRUE)
+    )),
     20608)
 
   expect_equal(
-    data_3_tests$lock(verbose = FALSE)$is_locked(verbose = FALSE),
+    iris_mtcars_test$lock()$is_locked(),
     TRUE)
 
   expect_error(
-    data_3_tests$cache <- NULL)
+    iris_mtcars_test$cache <- NULL)
 
   expect_equal(
-    data_3_tests$unlock(verbose = FALSE)$is_locked(verbose = FALSE),
+    iris_mtcars_test$unlock()$is_locked(),
     FALSE)
 
 })
@@ -544,220 +530,196 @@ test_that("prunning tree with locked RDOs", {
 test_that("validating deep r_code", {
 
   expect_equal(
-    data_3_tests$is_validated(deep = TRUE, verbose = FALSE),
+    iris_mtcars_test$is_validated(deep = TRUE),
     FALSE)
 
   expect_equal(
-    data_3_tests$invalidate(verbose = FALSE)$is_validated(deep = FALSE,
-                                                          verbose = FALSE),
+    iris_mtcars_test$invalidate()$is_validated(deep = FALSE),
     FALSE)
 
   expect_error(
-    data_3_tests$validate(deep = FALSE, verbose = FALSE))
+    iris_mtcars_test$validate(deep = FALSE))
 
   expect_equal(
-    data_3_tests$validate(deep = TRUE,
-                          verbose = FALSE)$is_validated(verbose = FALSE),
+    iris_mtcars_test$validate(deep = TRUE)$is_validated(),
     TRUE)
 
 })
-
 
 # _deep locking --------------------------------------------------------------
 test_that("deep locking", {
 
   expect_equal(
-    data_3_tests$is_locked(deep = TRUE, verbose = FALSE),
+    iris_mtcars_test$is_locked(deep = TRUE),
     FALSE)
 
   expect_equal(
-    data_3_tests$unlock(deep = TRUE,
-                        verbose = FALSE)$is_locked(deep = TRUE,
-                                                   verbose = FALSE),
+    iris_mtcars_test$unlock(deep = TRUE)$is_locked(deep = TRUE),
     FALSE)
 
   expect_equal(
-    data_3_tests$lock(deep = TRUE,
-                      verbose = FALSE)$is_locked(deep = TRUE,
-                                                 verbose = FALSE),
+    iris_mtcars_test$lock(deep = TRUE)$is_locked(deep = TRUE),
     TRUE)
 
 })
 
 # _removing intermediary RDOs -----------------------------------------------
-
-  rm(data_1_top_half, data_1_bottom_half,
-     data_1_binding_rows,
-     data_2_select_cols, data_2_select_rows,
-     data_3_binding_datasets)
+rm(mtcars_half_top, mtcars_half_bottom, mtcars_whole,
+   iris_selected_columns, iris_selected_rows)
 
 test_that("removing intermediary RDOs", {
 
   expect_false(
-    data_3_tests$unlock(
-      deep = TRUE,
-      verbose = FALSE)$prune_cache(
-        deep = TRUE,
-        verbose = FALSE)$invalidate(
-          deep = TRUE,
-          verbose = FALSE)$is_validated(
-            deep = TRUE,
-            verbose = FALSE))
+    iris_mtcars_test$unlock(deep = TRUE)$prune_cache(deep = TRUE)$invalidate(
+      deep = TRUE)$is_validated(deep = TRUE))
 
   expect_true(
-    data_3_tests$run_r_code(
-      deep = TRUE,
-      verbose = FALSE)$is_validated(
-        deep = TRUE,
-        verbose = FALSE))
+    iris_mtcars_test$run(deep = TRUE)$is_validated(deep = TRUE))
 
   expect_equal(
-    data_3_tests$get_dependencies(deep = TRUE)$data_1_binding_rows$cache,
+    iris_mtcars_test$get_dependencies(deep = TRUE)$mtcars_whole$cache,
     mtcars)
 
-
-
 })
-
 
 # _shared dependencies -------------------------------------------------------
 test_that("shared dependencies", {
 
-  expect_true(
-    data_1_loading$is_validated(verbose = FALSE))
+  expect_true(data_mtcars$is_validated())
 
   expect_false(
-    data_3_tests$get_dependencies(
-      deep = TRUE)$data_1_loading$invalidate(
-        verbose = FALSE)$is_validated(verbose = FALSE))
+    iris_mtcars_test$get_dependencies(
+      deep = TRUE)$data_mtcars$invalidate()$is_validated())
 
-  expect_false(
-    data_1_loading$is_validated(verbose = FALSE))
+  expect_false(data_mtcars$is_validated())
 
   expect_true(
-    data_3_tests$get_dependencies(
-      deep = TRUE)$data_1_top_half$get_dependencies(
-        deep = TRUE)$data_1_loading$validate(
-          verbose = FALSE)$is_validated(
-            verbose = FALSE))
+    iris_mtcars_test$get_dependencies(
+      deep = TRUE)$mtcars_half_top$get_dependencies(
+        deep = TRUE)$data_mtcars$validate()$is_validated())
 
-  expect_true(
-    data_1_loading$is_validated(verbose = FALSE))
+  expect_true(data_mtcars$is_validated())
 
 })
 
-test_that("deep cloning", {
+# _deep cloning  with manual prunning -----------------------------------------
+test_that("deep cloning with manual prunning", {
 
-  data_3_cloned <- data_3_tests$clone(deep = TRUE)
+  iris_mtcars_test_clone <- iris_mtcars_test$clone(deep = TRUE)
 
-  data_1_loading_cloned <-
-    data_3_cloned$get_dependencies(deep = TRUE)$data_1_loading
+  data_mtcars_cloned <-
+    iris_mtcars_test_clone$get_dependencies(deep = TRUE)$data_mtcars
 
-  data_1_loading_cloned$r_code <-
-    expression(data_1_loading = {
-      data_1_loading <- iris
-      })
+  data_mtcars_cloned$r_code <-
+    expression(data_mtcars = {
+      data_mtcars <- iris
+    })
 
-  data_3_cloned$get_dependencies(
-    deep = TRUE)$data_1_top_half$add_dependencies(data_1_loading_cloned)
+  iris_mtcars_test_clone$get_dependencies(
+    deep = TRUE)$mtcars_half_top$add_dependencies(data_mtcars_cloned)
 
-  data_3_cloned$get_dependencies(
-    deep = TRUE)$data_1_bottom_half$add_dependencies(data_1_loading_cloned)
+  iris_mtcars_test_clone$get_dependencies(
+    deep = TRUE)$mtcars_half_bottom$add_dependencies(data_mtcars_cloned)
 
   expect_true(
-    data_3_cloned$invalidate(
-      deep = TRUE, verbose = FALSE
-      )$get_dependencies()$data_3_binding_datasets$run_r_code(
-        deep = TRUE, verbose = FALSE)$is_validated(deep = TRUE, verbose = FALSE))
+    iris_mtcars_test_clone$invalidate(
+      deep = TRUE)$get_dependencies(deep = TRUE)$mtcars_whole$run(
+        deep = TRUE)$is_validated(deep = TRUE))
 
   expect_equal(
-    data_3_cloned$get_dependencies(
-      deep = TRUE)$data_1_top_half$get_dependencies(
-        deep = TRUE)$data_1_loading$cache,
+    iris_mtcars_test_clone$get_dependencies(
+      deep = TRUE)$mtcars_half_top$get_dependencies(
+        deep = TRUE)$data_mtcars$cache,
     iris)
 
   expect_equal(
-    data_3_cloned$get_dependencies(
-      deep = TRUE)$data_1_bottom_half$get_dependencies(
-        deep = TRUE)$data_1_loading$cache,
+    iris_mtcars_test_clone$get_dependencies(
+      deep = TRUE)$mtcars_half_bottom$get_dependencies(
+        deep = TRUE)$data_mtcars$cache,
     iris)
 
   expect_equal(
-    data_3_tests$get_dependencies(
-      deep = TRUE)$data_1_bottom_half$get_dependencies(
-        deep = TRUE)$data_1_loading$cache,
+    iris_mtcars_test$get_dependencies(
+      deep = TRUE)$mtcars_half_bottom$get_dependencies(
+        deep = TRUE)$data_mtcars$cache,
     mtcars)
 
   expect_equal(
-    data_3_tests$get_dependencies(
-      deep = TRUE)$data_1_top_half$get_dependencies(
-        deep = TRUE)$data_1_loading$cache,
+    iris_mtcars_test$get_dependencies(
+      deep = TRUE)$mtcars_half_top$get_dependencies(
+        deep = TRUE)$data_mtcars$cache,
     mtcars)
 
   expect_true(
-    all(c("Species", "mpg") %in%  names(
-      data_3_tests$invalidate(
-        deep = TRUE, verbose = FALSE
-        )$get_dependencies()$data_3_binding_datasets$run_r_code(
-          deep = TRUE, verbose = FALSE)$cache)))
+    all(c("Species", "mpg") %in% names(
+      iris_mtcars_test$invalidate(deep = TRUE)$get_dependencies(
+        deep = TRUE)$iris_mtcars$run(deep = TRUE)$cache
+    )))
 
   expect_false(
-    all(c("Species", "mpg") %in%  names(
-      data_3_cloned$invalidate(
-        deep = TRUE, verbose = FALSE
-        )$get_dependencies()$data_3_binding_datasets$run_r_code(
-          deep = TRUE, verbose = FALSE)$cache)))
+    all(c("Species", "mpg") %in% names(
+      iris_mtcars_test_clone$invalidate(deep = TRUE)$get_dependencies(
+        deep = TRUE)$iris_mtcars$run(deep = TRUE)$cache
+    )))
 
+})
 
-  data_3_cloned <- data_3_tests$clone(deep = TRUE)
+# _deep cloning  with automatic prunning --------------------------------------
+test_that("deep cloning with automatic prunning", {
 
-  data_3_cloned$prune_dependencies(verbose = FALSE)
+  iris_mtcars_test_clone <-
+    iris_mtcars_test$clone(deep = TRUE)$prune_dependencies()
 
-  data_1_loading_cloned <-
-    data_3_cloned$get_dependencies(deep = TRUE)$data_1_loading
+  data_mtcars_cloned <-
+    iris_mtcars_test_clone$get_dependencies(deep = TRUE)$data_mtcars
 
-  data_1_loading_cloned$r_code <-
-    expression(data_1_loading = {
-      data_1_loading <- iris
-      })
+  data_mtcars_cloned$r_code <-
+    expression(data_mtcars = {
+      data_mtcars <- iris
+    })
 
   expect_true(
-    all(c("Species", "mpg") %in%  names(
-      data_3_tests$invalidate(
-        deep = TRUE, verbose = FALSE
-        )$get_dependencies()$data_3_binding_datasets$run_r_code(
-          deep = TRUE, verbose = FALSE)$cache)))
+    all(c("Species", "mpg") %in% names(
+      iris_mtcars_test$invalidate(deep = TRUE)$get_dependencies(
+        deep = TRUE)$iris_mtcars$run(deep = TRUE)$cache
+    )))
 
   expect_false(
-    all(c("Species", "mpg") %in%  names(
-      data_3_cloned$invalidate(
-        deep = TRUE, verbose = FALSE
-        )$get_dependencies()$data_3_binding_datasets$run_r_code(
-          deep = TRUE, verbose = FALSE)$cache)))
+    all(c("Species", "mpg") %in% names(
+      iris_mtcars_test_clone$invalidate(deep = TRUE)$get_dependencies(
+        deep = TRUE)$iris_mtcars$run(deep = TRUE)$cache
+    )))
 
 })
 
-test_that("prunning dependencies in top parent", {
+# _prunning dependencies in the root ------------------------------------------
+test_that("prunning dependencies in the root", {
 
-  expect_true({
-    data_3_cloned <- data_3_tests$clone(deep = TRUE)
+  iris_mtcars_test_clone <- iris_mtcars_test$clone(deep = TRUE)
 
-    data_3_cloned$add_dependencies(
-      dependencies = data_3_tests$get_dependencies(TRUE)$data_1_binding_rows)
+  iris_mtcars_test_clone$add_dependencies(
+    dependencies = iris_mtcars_test$get_dependencies(TRUE)$mtcars_whole)
 
-    data_3_cloned$prune_dependencies(
-      verbose = FALSE)$get_dependency_register()
+  expect_equal(
+    names(iris_mtcars_test_clone$get_dependencies()),
+    c("iris_mtcars" , "mtcars_whole"))
 
-    TRUE
-  })
+  register <- iris_mtcars_test_clone$get_dependency_register()
+
+  expect_equal(
+    register[register$dependency == "mtcars_whole",]$parent,
+    c("iris_mtcars", "iris_mtcars_test"))
+
+    # TODO: ####
+  iris_mtcars_test_clone$prune_dependencies()
+
 })
 
-# _converting RDOs -------------------------------------------------------------
-capture.output(eval(expr = data_3_tests$get_r_code(deep = TRUE)))
+# _converting RDOs ------------------------------------------------------------
+capture.output(eval(expr = iris_mtcars_test$get_r_code(deep = TRUE)))
 
 test_that("replacing RDOs", {
 
-  expect_true(
-    is.data.frame(data_3_tests))
+  expect_true(is.data.frame(iris_mtcars))
 
 })
