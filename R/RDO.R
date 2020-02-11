@@ -214,8 +214,19 @@ RDO <-
 
           temp_envir <- setNames(temp_envir, names(dependecies))
 
-          temp_data <- eval(expr = self$get_code(deep = FALSE),
-                            envir = temp_envir)
+          temp_data <-
+            tryCatch(
+
+              eval(expr = self$get_code(deep = FALSE),
+                   envir = temp_envir,
+                   enclos = parent.env(env = globalenv())),
+
+              error = function(e) {
+                message("Error while running RDO code! \n",
+                        "Always check for missing dependencies... ")
+                stop(e)
+              }
+            )
         }
 
         if (cache) {

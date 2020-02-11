@@ -358,11 +358,34 @@ test_that("printing code", {
 
 })
 
-# _running code deep-------------------------------------------------------
+# _running code with missing dependencies -------------------------------------
+test_that("running code with missing dependencies", {
+
+  expect_true(mtcars_half_top$run()$is_validated())
+  expect_true(mtcars_half_bottom$run()$is_validated())
+
+  mtcars_whole_wrong_dependencies <-
+    RDO::RDO$new(name = "mtcars_whole_wrong_dependencies",
+                 dependencies = list(mtcars_half_top))
+
+  mtcars_whole_wrong_dependencies$code <- expression({
+    mtcars_whole <- rbind(mtcars_half_top,
+                          mtcars_half_bottom)
+  })
+
+  expect_error(mtcars_whole_wrong_dependencies$run())
+
+  mtcars_whole_wrong_dependencies$add_dependencies(mtcars_half_bottom)
+
+  expect_true(mtcars_whole_wrong_dependencies$run()$is_validated())
+
+})
+
+# _running code deep ----------------------------------------------------------
 test_that("running code deep", {
 
   expect_equal(
-    mtcars_whole$is_validated(),
+    mtcars_whole$invalidate(deep = TRUE)$is_validated(),
     FALSE)
 
   expect_error(
