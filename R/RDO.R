@@ -11,7 +11,34 @@ RDO <-
     public = list(
 
       print = function(...) {
-        cat("")
+
+        has_dependencies <- self$has_dependencies()
+        dependencies_names <- names(self$get_dependencies())
+        status <- self$get_status()
+
+        if (is.null(status$touched))   status$touched   <- "(never)"
+        if (is.null(status$validated)) status$validated <- "(never)"
+
+        cat("<RDO>\n")
+        cat("Name:", self$get_name(), "\n")
+        cat("Dependencies:",
+            ifelse(has_dependencies,
+                   paste0("\n- ", paste(dependencies_names,
+                                        sep = "",
+                                        collapse = "\n- "), "\n"), "none.\n"))
+        cat("Status:\n")
+        cat("- created:       ",
+            as.character(status$created, usetz = TRUE), "\n")
+        cat("- last changed:  ",
+            as.character(status$changed, usetz = TRUE), "\n")
+        cat("- last touched:  ",
+            as.character(status$touched, usetz = TRUE), "\n")
+        cat("- last validated:",
+            as.character(status$validated, usetz = TRUE), "\n")
+        cat("- is validated?  ", as.character(status$is_validated), "\n")
+        cat("- is locked?     ", as.character(status$is_locked), "\n")
+
+
 
       },
 
@@ -580,13 +607,17 @@ RDO <-
       cache = function(value) {
 
         if (missing(value)) {
+
+          private$set_status(status = "touched")
           return(private$data_cache)
+
         } else {
 
           if (private$status$is_locked)
             stop("This RDO is locked! Cannot overwrite the RDO's cache.")
 
           private$data_cache <- value
+          private$set_status(status = "touched")
           private$set_status(status = "invalidated")
         }
       }
@@ -601,6 +632,7 @@ RDO <-
       status = list(
         created = NULL,
         changed = NULL,
+        touched = NULL,
         validated = NULL,
         is_validated = FALSE,
         is_locked = FALSE
@@ -609,23 +641,32 @@ RDO <-
       data_cache = NULL,
       code_expression = NULL,
 
-      set_status = function(status = "changed") {
+      set_status = function(status) {
 
         timestamp <- Sys.time()
         attr(timestamp, "tzone") <- "UTC"
 
-        private$status$changed <- timestamp
+        if (status == "touched") {
+          private$status$touched <- timestamp
+        }
+
+        if (status == "changed") {
+          private$status$changed <- timestamp
+        }
 
         if (status == "created") {
           private$status$created <- timestamp
+          private$status$changed <- timestamp
         }
 
         if (status == "validated") {
+          private$status$changed <- timestamp
           private$status$is_validated <- TRUE
           private$status$validated <- timestamp
         }
 
         if (status == "invalidated") {
+          private$status$changed <- timestamp
           private$status$is_validated <- FALSE
         }
       },

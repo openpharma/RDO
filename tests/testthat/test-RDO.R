@@ -2,7 +2,6 @@
 # RDO::RDO$debug("get_dependencies")
 # RDO::RDO$undebug("get_dependencies")
 # Sys.setenv("RDO_VERBOSE" = FALSE)
-options(digits.secs = 6)
 
 # RDOs definitions ############################################################
 data_mtcars <- RDO::RDO$new(name = "data_mtcars")
@@ -89,7 +88,6 @@ iris_mtcars_test$code <- expression({
   iris_mtcars <- iris_mtcars
 
 })
-
 
 # RDO without dependencies ####################################################
 context("RDO without dependencies")
@@ -281,6 +279,48 @@ test_that("explicit (in)validation", {
 
 # RDO with dependencies #######################################################
 context("RDO with dependencies")
+
+# _printing RDO ---------------------------------------------------------------
+test_that("printing RDO", {
+  expect_output(
+    print(mtcars_whole),
+    "Name.*mtcars_whole")
+
+  expect_output(
+    print(mtcars_whole),
+    "Dependencies.*mtcars_half_top.*mtcars_half_bottom")
+
+  expect_output(
+    print(mtcars_whole),
+    "Status.*created")
+
+  expect_output(
+    print(mtcars_whole),
+    "Status.*changed.")
+
+  expect_output(
+    print(mtcars_whole),
+    "Status.*validated")
+
+  expect_output(
+    print(mtcars_whole),
+    "Status.*is locked")
+
+  expect_output(
+    print(mtcars_whole),
+    "Status.*is validated")
+
+  expect_output(
+    print(mtcars_whole),
+    "Status.*touched.*never.*?$")
+
+  mtcars_whole$cache
+
+  expect_output(
+    print(mtcars_whole),
+    ".*?touched.*UTC")
+
+})
 
 # _checking dependencies ------------------------------------------------------
 test_that("checking dependencies", {
