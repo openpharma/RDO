@@ -89,45 +89,45 @@ RDO <-
       },
 
 
-      get_r_code = function(deep = FALSE) {
+      get_code = function(deep = FALSE) {
 
         has_dependencies <- self$has_dependencies()
 
         if (!has_dependencies | !deep) {
-          r_code <- private$r_code_expression
+          code <- private$code_expression
 
-          if (!is.null(r_code))
-            names(r_code) <- self$get_name()
+          if (!is.null(code))
+            names(code) <- self$get_name()
 
-          return(r_code)
+          return(code)
         }
 
         self_dependencies <- self$get_dependencies(deep = TRUE)
 
-        r_code <-
+        code <-
           purrr::map(self_dependencies, function(rdo) {
-            rdo$get_r_code(deep = FALSE)
+            rdo$get_code(deep = FALSE)
           })
 
-        r_code <- do.call(what = c, args = unname(r_code))
+        code <- do.call(what = c, args = unname(code))
 
-        r_code_self <- self$get_r_code(deep = FALSE)
-        names(r_code_self) <- self$get_name()
+        code_self <- self$get_code(deep = FALSE)
+        names(code_self) <- self$get_name()
 
-        r_code <- c(r_code, r_code_self)
+        code <- c(code, code_self)
 
-        return(r_code)
+        return(code)
       },
 
 
-      print_r_code = function(deep = FALSE, verbose = TRUE) {
+      print_code = function(deep = FALSE, verbose = TRUE) {
 
-        r_code_text <-
-          purrr::map(as.list(self$get_r_code(deep = deep)),
+        code_text <-
+          purrr::map(as.list(self$get_code(deep = deep)),
                      ~ as.character(.x))
 
-        r_code_text <-
-          purrr::map_chr(r_code_text, function(code_line) {
+        code_text <-
+          purrr::map_chr(code_text, function(code_line) {
 
             if (code_line[1] == "{") {
               code_line <- code_line[-1]
@@ -136,12 +136,12 @@ RDO <-
             paste(code_line, collapse = "\n")
           })
 
-        r_code_text <- paste(r_code_text, collapse = '\n')
-        r_code_text <- paste(r_code_text, "\n")
+        code_text <- paste(code_text, collapse = '\n')
+        code_text <- paste(code_text, "\n")
 
-        if (verbose) cat(r_code_text)
+        if (verbose) cat(code_text)
 
-        invisible(r_code_text)
+        invisible(code_text)
       },
 
 
@@ -161,7 +161,7 @@ RDO <-
         if (has_dependencies) {
           if (verbose) cat("has dependencies ...\n")
         } else {
-          temp_data <- eval(expr = self$get_r_code(deep = FALSE))
+          temp_data <- eval(expr = self$get_code(deep = FALSE))
           if (verbose) cat("done!\n")
         }
 
@@ -214,7 +214,7 @@ RDO <-
 
           temp_envir <- setNames(temp_envir, names(dependecies))
 
-          temp_data <- eval(expr = self$get_r_code(deep = FALSE),
+          temp_data <- eval(expr = self$get_code(deep = FALSE),
                             envir = temp_envir)
         }
 
@@ -326,9 +326,9 @@ RDO <-
 
         if (verbose) cat("Validating RDO: '", self_name, "' ... ", sep = "")
 
-        self_deep_r_code <- self$get_r_code(deep = deep)
+        self_deep_code <- self$get_code(deep = deep)
 
-        eval_data <- eval(expr = self_deep_r_code, envir = eval_envir)
+        eval_data <- eval(expr = self_deep_code, envir = eval_envir)
 
         is_validated <- identical(self$cache, eval_data)
 
@@ -540,16 +540,16 @@ RDO <-
     # ACTIVE BINDINGS #########################################################
     active = list(
 
-      r_code = function(value) {
+      code = function(value) {
 
         if (missing(value)) {
-          self$print_r_code(deep = TRUE, verbose = FALSE)
+          self$print_code(deep = TRUE, verbose = FALSE)
         } else {
 
           if (private$status$is_locked)
-            stop("This RDO is locked! Cannot overwrite the r_code.")
+            stop("This RDO is locked! Cannot overwrite the code.")
 
-          private$r_code_expression <- value
+          private$code_expression <- value
           private$set_status(status = "invalidated")
         }
       },
@@ -585,7 +585,7 @@ RDO <-
       ),
 
       data_cache = NULL,
-      r_code_expression = NULL,
+      code_expression = NULL,
 
       set_status = function(status = "changed") {
 

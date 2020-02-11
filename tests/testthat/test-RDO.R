@@ -7,7 +7,7 @@ options(digits.secs = 6)
 # RDOs definitions ############################################################
 data_mtcars <- RDO::RDO$new(name = "data_mtcars")
 
-data_mtcars$r_code <- expression({
+data_mtcars$code <- expression({
   data_mtcars <- mtcars
 })
 
@@ -16,7 +16,7 @@ mtcars_half_top <-
   RDO::RDO$new(name = "mtcars_half_top",
                dependencies = list(data_mtcars))
 
-mtcars_half_top$r_code <- expression({
+mtcars_half_top$code <- expression({
   mtcars_half_top <- head(data_mtcars, 16)
 })
 
@@ -25,7 +25,7 @@ mtcars_half_bottom <-
   RDO::RDO$new(name = "mtcars_half_bottom",
                dependencies = list(data_mtcars))
 
-mtcars_half_bottom$r_code <- expression({
+mtcars_half_bottom$code <- expression({
   mtcars_half_bottom <- tail(data_mtcars, 16)
 })
 
@@ -35,7 +35,7 @@ mtcars_whole <-
                dependencies = list(mtcars_half_top,
                                    mtcars_half_bottom))
 
-mtcars_whole$r_code <- expression({
+mtcars_whole$code <- expression({
   mtcars_whole <- rbind(mtcars_half_top,
                         mtcars_half_bottom)
 })
@@ -44,7 +44,7 @@ mtcars_whole$r_code <- expression({
 data_iris <-
   RDO::RDO$new(name = "data_iris")
 
-data_iris$r_code <- expression({
+data_iris$code <- expression({
   data_iris <- iris
 })
 
@@ -53,7 +53,7 @@ iris_selected_rows <-
   RDO::RDO$new(name = "iris_selected_rows",
                dependencies = list(data_iris))
 
-iris_selected_rows$r_code <- expression({
+iris_selected_rows$code <- expression({
   set.seed(1234)
   sampled_rows <- c(rep(TRUE, 32), rep(FALSE, NROW(data_iris) - 32))
   iris_selected_rows <- data_iris[sample(sampled_rows, NROW(data_iris)), ]
@@ -64,7 +64,7 @@ iris_selected_columns <-
   RDO::RDO$new(name = "iris_selected_columns",
                dependencies = list(iris_selected_rows))
 
-iris_selected_columns$r_code <- expression({
+iris_selected_columns$code <- expression({
   iris_selected_columns <- iris_selected_rows[, c("Species", "Petal.Width")]
 })
 
@@ -74,7 +74,7 @@ iris_mtcars <-
                dependencies = list(mtcars_whole,
                                    iris_selected_columns))
 
-iris_mtcars$r_code <- expression({
+iris_mtcars$code <- expression({
   iris_mtcars <- cbind(iris_selected_columns, mtcars_whole)
 })
 
@@ -83,7 +83,7 @@ iris_mtcars_test <-
   RDO::RDO$new(name = "iris_mtcars_test",
                dependencies = list(iris_mtcars))
 
-iris_mtcars_test$r_code <- expression({
+iris_mtcars_test$code <- expression({
 
   stopifnot("mpg" %in% names(iris_mtcars))
   iris_mtcars <- iris_mtcars
@@ -97,7 +97,7 @@ context("RDO without dependencies")
 # _RDO initialization ---------------------------------------------------------
 test_that("RDO after initialization", {
 
-  data_mtcars$r_code <-  NULL
+  data_mtcars$code <-  NULL
 
   expect_equal(
     data_mtcars$get_name(),
@@ -112,11 +112,11 @@ test_that("RDO after initialization", {
     0)
 
   # expect_equal(
-  #   is.character(data_mtcars$r_code),
+  #   is.character(data_mtcars$code),
   #   TRUE)
 
   expect_equal(
-    data_mtcars$get_r_code(),
+    data_mtcars$get_code(),
     NULL)
 
   expect_equal(
@@ -153,30 +153,30 @@ test_that("RDO after initialization", {
 
 })
 
-# _setting r_code -------------------------------------------------------------
-data_mtcars$r_code <- expression({
+# _setting code -------------------------------------------------------------
+data_mtcars$code <- expression({
   data_mtcars <- mtcars
 })
 
-test_that("setting r_code", {capture_output({
+test_that("setting code", {capture_output({
 
   expect_equal(
-    data_mtcars$get_r_code(),
+    data_mtcars$get_code(),
     expression(data_mtcars = {
       data_mtcars <- mtcars
     }))
 
 })})
 
-# _running of r_code -------------------------------------------------------
-test_that("running r_code", {capture_output({
+# _running of code -------------------------------------------------------
+test_that("running code", {capture_output({
 
   expect_equal(
-    eval(data_mtcars$get_r_code(), envir = new.env()),
+    eval(data_mtcars$get_code(), envir = new.env()),
     mtcars)
 
   expect_equal(
-    eval(data_mtcars$get_r_code(deep = TRUE), envir = new.env()),
+    eval(data_mtcars$get_code(deep = TRUE), envir = new.env()),
     mtcars)
 
   expect_equal(
@@ -186,7 +186,7 @@ test_that("running r_code", {capture_output({
 })})
 
 # _caching the data -----------------------------------------------------------
-test_that("running r_code and caching the data", {
+test_that("running code and caching the data", {
 
   expect_equal(
     data_mtcars$cache,
@@ -213,7 +213,7 @@ test_that("implicit (in)validation", {
     data_mtcars$is_validated(),
     TRUE)
 
-  data_mtcars$r_code <- expression({
+  data_mtcars$code <- expression({
     data_mtcars <- iris
   })
 
@@ -239,7 +239,7 @@ test_that("implicit (in)validation", {
     data_mtcars$cache,
     iris)
 
-  data_mtcars$r_code <- expression({
+  data_mtcars$code <- expression({
     data_mtcars <- mtcars
   })
 
@@ -322,15 +322,15 @@ test_that("checking dependencies", {
 
 })
 
-# _getting r_code -------------------------------------------------------------
-test_that("getting r_code", {
+# _getting code -------------------------------------------------------------
+test_that("getting code", {
 
   expect_equal(
-    names(iris_mtcars$get_r_code()),
+    names(iris_mtcars$get_code()),
     c("iris_mtcars"))
 
   expect_equal(
-    names(iris_mtcars$get_r_code(deep = TRUE)),
+    names(iris_mtcars$get_code(deep = TRUE)),
     c("data_mtcars",
       "mtcars_half_top", "mtcars_half_bottom",
       "data_iris",
@@ -341,25 +341,25 @@ test_that("getting r_code", {
 
 })
 
-# _printing r_code -----------------------------------------------------------
-test_that("printing r_code", {
+# _printing code -----------------------------------------------------------
+test_that("printing code", {
 
   expect_output(
-    mtcars_whole$print_r_code(),
+    mtcars_whole$print_code(),
     "^mtcars_whole.*$")
 
   expect_output(
-    mtcars_whole$print_r_code(deep = TRUE),
+    mtcars_whole$print_code(deep = TRUE),
     "^data_mtcars.*mtcars_half_top.*mtcars_half_bottom.*$")
 
   # expect_output(
-  #   cat(mtcars_whole$r_code),
+  #   cat(mtcars_whole$code),
   #   "^data_mtcars.*mtcars_whole .*$")
 
 })
 
-# _running r_code deep-------------------------------------------------------
-test_that("running r_code deep", {
+# _running code deep-------------------------------------------------------
+test_that("running code deep", {
 
   expect_equal(
     mtcars_whole$is_validated(),
@@ -455,14 +455,14 @@ test_that("testing RDO", {
   expect_true(
     iris_mtcars_test$run(deep = TRUE)$is_validated())
 
-  data_mtcars$r_code <- expression({
+  data_mtcars$code <- expression({
     data_mtcars <- iris
   })
 
   expect_error(
     iris_mtcars_test$run(deep = TRUE))
 
-  data_mtcars$r_code <- expression({
+  data_mtcars$code <- expression({
     data_mtcars <- mtcars
   })
 
@@ -526,8 +526,8 @@ test_that("prunning tree with locked RDOs", {
 
 })
 
-# _validating deep r_code -----------------------------------------------------
-test_that("validating deep r_code", {
+# _validating deep code -----------------------------------------------------
+test_that("validating deep code", {
 
   expect_equal(
     iris_mtcars_test$is_validated(deep = TRUE),
@@ -610,7 +610,7 @@ test_that("deep cloning with manual prunning", {
   data_mtcars_cloned <-
     iris_mtcars_test_clone$get_dependencies(deep = TRUE)$data_mtcars
 
-  data_mtcars_cloned$r_code <-
+  data_mtcars_cloned$code <-
     expression(data_mtcars = {
       data_mtcars <- iris
     })
@@ -673,7 +673,7 @@ test_that("deep cloning with automatic prunning", {
   data_mtcars_cloned <-
     iris_mtcars_test_clone$get_dependencies(deep = TRUE)$data_mtcars
 
-  data_mtcars_cloned$r_code <-
+  data_mtcars_cloned$code <-
     expression(data_mtcars = {
       data_mtcars <- iris
     })
@@ -710,13 +710,13 @@ test_that("prunning dependencies in the root", {
     register[register$dependency == "mtcars_whole",]$parent,
     c("iris_mtcars", "iris_mtcars_test"))
 
-    # TODO: ####
+    # TODO: id ####
   iris_mtcars_test_clone$prune_dependencies()
 
 })
 
 # _converting RDOs ------------------------------------------------------------
-capture.output(eval(expr = iris_mtcars_test$get_r_code(deep = TRUE)))
+capture.output(eval(expr = iris_mtcars_test$get_code(deep = TRUE)))
 
 test_that("replacing RDOs", {
 
