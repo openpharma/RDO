@@ -10,11 +10,22 @@ RDO <-
     # PUBLIC ##################################################################
     public = list(
 
+      print = function(...) {
+        cat("")
+
+      },
+
       initialize = function(name,
                             dependencies = list()) {
+
+        self$add_dependencies(dependencies = dependencies)
+        dependencies_names <- names(self$get_dependencies(deep = TRUE))
+
+        if (name %in% dependencies_names)
+          stop("RDO with this name is already in deep dependencies!")
+
         private$name <- name
         private$set_status(status = "created")
-        self$add_dependencies(dependencies = dependencies)
       },
 
 

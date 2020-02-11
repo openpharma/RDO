@@ -358,6 +358,14 @@ test_that("printing code", {
 
 })
 
+# _checking uniqueness of RDO name ------------------------------------------
+test_that("checking uniqueness of RDO name", {
+
+  expect_error(RDO::RDO$new(name = "mtcars_half_top",
+                            dependencies = list(mtcars_half_top)))
+
+})
+
 # _running code with missing dependencies -------------------------------------
 test_that("running code with missing dependencies", {
 
@@ -376,6 +384,7 @@ test_that("running code with missing dependencies", {
   expect_error(mtcars_whole_wrong_dependencies$run())
 
   mtcars_whole_wrong_dependencies$add_dependencies(mtcars_half_bottom)
+  mtcars_whole_wrong_dependencies$add_dependencies(mtcars_half_top)
 
   expect_true(mtcars_whole_wrong_dependencies$run()$is_validated())
 
@@ -404,6 +413,12 @@ test_that("running code deep", {
   expect_output(
     iris_mtcars$run(deep = TRUE, verbose = TRUE),
     "^.*mtcars_whole.*iris_selected_columns' is validated.*$")
+
+  expect_false(mtcars_half_top$invalidate()$is_validated())
+
+  expect_false(iris_mtcars$is_validated(deep = TRUE))
+
+  expect_true(iris_mtcars$run(deep = TRUE)$is_validated(deep = TRUE))
 
 })
 
