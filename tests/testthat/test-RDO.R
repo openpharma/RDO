@@ -106,7 +106,7 @@ test_that("RDO after initialization", {
     NULL)
 
   expect_equal(
-    as.numeric(data_mtcars$get_cache_size()$data_mtcars),
+    as.numeric(data_mtcars$get_status()$cache_size),
     0)
 
   # expect_equal(
@@ -553,18 +553,18 @@ test_that("testing RDO", {
 test_that("prunning cache", {
 
   expect_equal(
-    sum(unlist(iris_mtcars_test$get_cache_size(deep = TRUE))),
+    sum(unlist(iris_mtcars_test$get_status()$cache_size_total)),
     48256)
 
   expect_equal(
     sum(unlist(
-      iris_mtcars_test$prune_cache(deep = TRUE)$get_cache_size(deep = TRUE)
+      iris_mtcars_test$prune_cache(deep = TRUE)$get_status()$cache_size_total
     )),
     6144)
 
   expect_equal(
     sum(unlist(
-      iris_mtcars_test$run(deep = TRUE)$get_cache_size(deep = TRUE)
+      iris_mtcars_test$run(deep = TRUE)$get_status()$cache_size_total
     )),
     48256)
 
@@ -574,7 +574,7 @@ test_that("prunning cache", {
 test_that("prunning tree with locked RDOs", {
 
   expect_equal(
-    sum(unlist(iris_mtcars_test$get_cache_size(deep = TRUE))),
+    sum(unlist(iris_mtcars_test$get_status()$cache_size_total)),
     48256)
 
   expect_equal(
@@ -587,7 +587,7 @@ test_that("prunning tree with locked RDOs", {
 
   expect_equal(
     sum(unlist(
-      iris_mtcars_test$prune_cache(deep = TRUE)$get_cache_size(deep = TRUE)
+      iris_mtcars_test$prune_cache(deep = TRUE)$get_status()$cache_size_total
     )),
     20608)
 
@@ -792,6 +792,39 @@ test_that("prunning dependencies in the root", {
   iris_mtcars_test_clone$prune_dependencies()
 
 })
+
+test_that("timming code run", {
+
+  iris_mtcars_test_cloned <-
+    iris_mtcars_test$clone(deep = TRUE)$prune_dependencies()
+  iris_mtcars_test_cloned$code <- expression({Sys.sleep(0.5)})
+
+  iris_mtcars_cloned <-
+    iris_mtcars_test_cloned$get_dependencies(TRUE)$iris_mtcars
+  iris_mtcars_cloned$code <- expression({Sys.sleep(0.5)})
+
+  iris_mtcars_test_cloned$run(deep = T)
+
+  expect_true(iris_mtcars_cloned$get_status()$run_time >= 0.5)
+  expect_true(iris_mtcars_cloned$get_status()$run_time_total < 1)
+
+  expect_true(iris_mtcars_test_cloned$get_status()$run_time >= 0.5)
+  expect_true(iris_mtcars_test_cloned$get_status()$run_time_total >= 1)
+
+})
+
+
+iris_mtcars_test$get_dependencies(T)$mtcars_whole$unlock()
+iris_mtcars_test$run(deep = T)
+iris_mtcars_test$plot_dependencies()
+
+iris_mtcars_test$get_dependencies(T)$mtcars_whole$lock()
+iris_mtcars_test$prune_cache(deep = TRUE)
+iris_mtcars_test$plot_dependencies()
+
+iris_mtcars_test$get_status()
+iris_mtcars_test
+
 
 # _converting RDOs ------------------------------------------------------------
 capture.output(eval(expr = iris_mtcars_test$get_code(deep = TRUE)))

@@ -35,8 +35,18 @@ RDO <-
             as.character(status$touched, usetz = TRUE), "\n")
         cat("- last validated:",
             as.character(status$validated, usetz = TRUE), "\n")
+        cat("- last run time: ",
+            as.character(status$run_time), "\n")
+        cat("- run time total:",
+            as.character(private$get_run_time(deep = TRUE)), "\n")
         cat("- is validated?  ", as.character(status$is_validated), "\n")
         cat("- is locked?     ", as.character(status$is_locked), "\n")
+        cat("- cache size:    ",
+            format(x = status$cache_size, units = "Mb", digits = 4L),
+            "\n")
+        cat("- cached total:  ",
+            format(x = status$cache_size_total, units = "Mb", digits = 4L),
+            "\n")
 
 
 
@@ -57,7 +67,21 @@ RDO <-
 
 
       get_status = function() {
-        private$status
+
+        status_extended <-
+          c(name = self$get_name(),
+            private$status,
+            run_time_total = private$get_run_time(deep = TRUE),
+            cache_size = private$get_cache_size(),
+            cache_size_total = private$get_cache_size(deep = TRUE))
+
+        status_extended$cache_size <-
+          `class<-`(status_extended$cache_size, value = "object_size")
+
+        status_extended$cache_size_total <-
+          `class<-`(status_extended$cache_size_total, value = "object_size")
+
+        status_extended
       },
 
 
@@ -105,25 +129,84 @@ RDO <-
 
         dependencies[!duplicated_dependency]
 
-      }, # end of get_dependencies
+      },
 
 
       get_dependency_register = function() {
 
         has_dependencies <- self$has_dependencies()
 
-        if (!has_dependencies) {
-          tibble::tibble(dependency = NA_character_, parent = self$get_name())
-        }
+        if (!has_dependencies) {return(NULL)}
 
         dependencies <- self$get_dependencies()
 
         purrr::map_df(dependencies, function(rdo) {
           dplyr::bind_rows(
-            tibble::tibble(dependency = rdo$get_name(),
-                           parent = self$get_name()),
-            rdo$get_dependency_register())
+            tibble::tibble(
+              dependency = rdo$get_name(),
+              parent = self$get_name()
+            ),
+            rdo$get_dependency_register()
+          )
         })
+      },
+
+
+      plot_dependencies = function() {
+
+        register     <- self$get_dependency_register()
+        dependencies <- self$get_dependencies(deep = TRUE)
+
+        rdos <- c(dependencies, self)
+        rdos <- setNames(rdos, c(names(dependencies), self$get_name()))
+
+        suppressWarnings({
+          nodes <- purrr::map_df(rdos, function(rdo) {
+
+            rdo$get_status()
+
+          })
+        })
+
+        nodes$shape <- "box"
+        nodes$shadow <- TRUE
+        nodes$id    <- nodes$name
+        nodes$label <- nodes$name
+        nodes$color <- ifelse(nodes$is_validated, NA_character_, "orange")
+        nodes$title <- paste0(
+          "Is validated? ", nodes$is_validated, "<br>",
+          "Is locked? ", nodes$is_locked, "<br>",
+          "Created: ", nodes$created, "<br>",
+          "Changed: ", nodes$changed, "<br>",
+          "Validated: ", nodes$validated, "<br>",
+          "Touched: ", nodes$touched, "<br>",
+          "Run time: ", nodes$run_time, "<br>",
+          "Run time total: ", nodes$run_time_total, "<br>",
+          "Cache size: ",
+          format(x = (`class<-`(nodes$cache_size, value = "object_size")),
+                 units = "Mb", digits = 4L),
+          "<br>",
+          "Cache total: ",
+          format(x = (`class<-`(nodes$cache_size_total, value = "object_size")),
+                 units = "Mb", digits = 4L),
+          "<br>")
+
+        edges <- data.frame(
+          stringsAsFactors = FALSE,
+          from = register$dependency,
+          to = register$parent
+        )
+
+        vis_network <- visNetwork::visNetwork(nodes = nodes, edges = edges)
+        vis_network <- visNetwork::visEdges(vis_network, arrows = "to")
+        vis_network <- visNetwork::visHierarchicalLayout(
+          vis_network,
+          direction = "DU",
+          sortMethod = "directed",
+          blockShifting = FALSE)
+
+        vis_network
+
       },
 
 
@@ -199,7 +282,9 @@ RDO <-
         if (has_dependencies) {
           if (verbose) cat("has dependencies ...\n")
         } else {
+          timing_start <- Sys.time()
           temp_data <- eval(expr = self$get_code(deep = FALSE))
+          private$status$run_time <- Sys.time() - timing_start
           if (verbose) cat("done!\n")
         }
 
@@ -252,6 +337,8 @@ RDO <-
 
           temp_envir <- setNames(temp_envir, names(dependecies))
 
+          timing_start <- Sys.time()
+
           temp_data <-
             tryCatch(
 
@@ -265,6 +352,9 @@ RDO <-
                 stop(e)
               }
             )
+
+          private$status$run_time <- Sys.time() - timing_start
+
         }
 
         if (cache) {
@@ -478,44 +568,6 @@ RDO <-
       },
 
 
-      get_cache_size = function(deep = FALSE,
-                                verbose = Sys.getenv("RDO_VERBOSE")) {
-
-        verbose <- as.logical(verbose)
-        if (is.na(verbose)) verbose <- TRUE
-
-        if (verbose) cat("Cache size: ")
-
-        cache_size <- list()
-
-        if (deep & self$has_dependencies()) {
-
-          dependencies <- self$get_dependencies(deep = deep)
-
-          cache_size <-
-            purrr::map(dependencies, function(rdo) {
-              object.size(rdo$cache)
-            })
-        }
-
-        self_cache_size <- setNames(object.size(self$cache), self$get_name())
-
-        cache_size <-
-          c(cache_size, self_cache_size)
-
-        cache_size <-
-          purrr::map(cache_size, ~ `class<-`(.x, value = "object_size"))
-
-        cache_size_total <- `class<-`(sum(unlist(cache_size)),
-                                      value = "object_size")
-
-        if (verbose)
-          cat(format(x = cache_size_total, units = "Mb", digits = 4L), "\n")
-
-        invisible(cache_size)
-      },
-
-
       prune_cache = function(deep = FALSE,
                              verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -557,7 +609,8 @@ RDO <-
 
         duplicated_clones <-
           dependency_register[
-            dependency_register$dependency %in% duplicated_clones, ]
+            dependency_register$dependency %in% duplicated_clones,
+            c("dependency", "parent")]
 
         if (NROW(duplicated_clones) > 0) {
 
@@ -635,7 +688,8 @@ RDO <-
         touched = NULL,
         validated = NULL,
         is_validated = FALSE,
-        is_locked = FALSE
+        is_locked = FALSE,
+        run_time = NULL
       ),
 
       data_cache = NULL,
@@ -670,6 +724,57 @@ RDO <-
           private$status$is_validated <- FALSE
         }
       },
+
+
+      get_cache_size = function(deep = FALSE) {
+
+        cache_size <- list()
+
+        if (deep & self$has_dependencies()) {
+
+          dependencies <- self$get_dependencies(deep = deep)
+
+          cache_size <-
+            purrr::map(dependencies, function(rdo) {
+              object.size(rdo$cache)
+            })
+        }
+
+        self_cache_size <- setNames(object.size(self$cache), self$get_name())
+
+        cache_size <- c(cache_size, self_cache_size)
+
+        cache_size_total <- sum(unlist(cache_size))
+
+        invisible(cache_size_total)
+
+      },
+
+
+      get_run_time = function(deep = FALSE) {
+
+        run_time <- list()
+
+        if (deep & self$has_dependencies()) {
+
+          dependencies <- self$get_dependencies(deep = deep)
+
+          run_time <-
+            purrr::map(dependencies, function(rdo) {
+              rdo$get_status()$run_time
+            })
+        }
+
+        self_run_time <- private$status$run_time
+
+        run_time <- c(run_time, self_run_time)
+
+        run_time_total <- sum(unlist(run_time))
+
+        invisible(run_time_total)
+
+      },
+
 
       deep_clone = function(name, value) {
 
