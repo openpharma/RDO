@@ -162,9 +162,7 @@ RDO <-
 
         suppressWarnings({
           nodes <- purrr::map_df(rdos, function(rdo) {
-
-            rdo$get_status()
-
+            purrr::map(rdo$get_status(), ~ ifelse(is.null(.x), NA, .x))
           })
         })
 
