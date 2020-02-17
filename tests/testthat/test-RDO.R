@@ -384,11 +384,11 @@ test_that("getting code", {
 test_that("printing code", {
 
   expect_output(
-    mtcars_whole$print_code(),
+    mtcars_whole$print_code(verbose = TRUE),
     "^mtcars_whole.*$")
 
   expect_output(
-    mtcars_whole$print_code(deep = TRUE),
+    mtcars_whole$print_code(deep = TRUE, verbose = TRUE),
     "^data_mtcars.*mtcars_half_top.*mtcars_half_bottom.*$")
 
   # expect_output(

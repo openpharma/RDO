@@ -1,7 +1,13 @@
-
+#' @title RDO (Reproducible Data Object)
+#'
+#' @name RDO
+#'
+#' @description Create and interact with Reproducible Data Objects.
+#'
 #' @import data.table
 #'
 #' @export
+NULL
 
 RDO <-
   R6::R6Class(
@@ -10,6 +16,8 @@ RDO <-
     # PUBLIC ##################################################################
     public = list(
 
+      #' @description Default print method of current RDO status
+      #' @param ... Other params for print function.
       print = function(...) {
 
         has_dependencies <- self$has_dependencies()
@@ -47,11 +55,13 @@ RDO <-
         cat("- cached total:  ",
             format(x = status$cache_size_total, units = "Mb", digits = 4L),
             "\n")
-
-
-
       },
 
+
+      #' @description Creating a new RDO object,
+      #' @param name Unique name of the object.
+      #' @param dependencies An RDO object or a list of RDO objects.
+      #' @return A new 'RDO' object.
       initialize = function(name,
                             dependencies = list()) {
 
@@ -65,7 +75,8 @@ RDO <-
         private$set_status(status = "created")
       },
 
-
+      #' @description Getting current status.
+      #' @return A list.
       get_status = function() {
 
         status_extended <-
@@ -84,17 +95,23 @@ RDO <-
         status_extended
       },
 
-
+      #' @description Getting object name.
+      #' @return A character with object name.
       get_name = function() {
         private$name
       },
 
 
+      #' @description Checking if object has dependencies.
+      #' @return TRUE if has or FALSE if not.
       has_dependencies = function() {
         if (NROW(private$dependencies) > 0) {TRUE} else {FALSE}
       },
 
 
+      #' @description Adding new or update existing RDO dependencies.
+      #' @param dependencies An RDO object or a list of RDO objects.
+      #' @return The RDO object (self) returned invisibly.
       add_dependencies = function(dependencies = list()) {
 
         if (!is.list(dependencies))
@@ -109,6 +126,12 @@ RDO <-
       },
 
 
+      #' @description Getting dependencies of the object.
+      #' @param deep A logical.
+      #' Should the function return only direct dependencies (FALSE) or
+      #' also deep indirect dependencies (dependencies of dependencies).
+      #' Default is FALSE.
+      #' @return A named list of RDO dependencies wih unique names.
       get_dependencies = function(deep = FALSE) {
 
         has_dependencies <- self$has_dependencies()
@@ -132,6 +155,9 @@ RDO <-
       },
 
 
+      #' @description Getting dependency register showing which RDO is
+      #' a direct parent for other RDO dependencies.
+      #' @return A data.frame.
       get_dependency_register = function() {
 
         has_dependencies <- self$has_dependencies()
@@ -151,8 +177,13 @@ RDO <-
         })
       },
 
-
+      #' @description Ploting the tree of RDO dependencies.
+      #' Needs \code{visNetwork} package for plotting.
       plot_dependencies = function() {
+
+        if (!requireNamespace("visNetwork", quietly = TRUE)) {
+          stop("Please install the 'visNetwork' package.")
+        }
 
         register     <- self$get_dependency_register()
         dependencies <- self$get_dependencies(deep = TRUE)
@@ -214,6 +245,12 @@ RDO <-
       },
 
 
+      #' @description Getting reproducible R code.
+      #' @param deep A logical.
+      #' Should the function return only code for this particular RDO (FALSE)
+      #' or also from all dependencies.
+      #' Default is FALSE.
+      #' @return An R named expression.
       get_code = function(deep = FALSE) {
 
         has_dependencies <- self$has_dependencies()
@@ -245,7 +282,22 @@ RDO <-
       },
 
 
-      print_code = function(deep = FALSE, verbose = TRUE) {
+      #' @description Printing reproducible R code.
+      #' @param deep A logical.
+      #' Should the function return only code for this particular RDO (FALSE)
+      #' or also from all dependencies.
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return A charater. Reproducible R code returned invisibly.
+      print_code = function(deep = FALSE,
+                            verbose = Sys.getenv("RDO_VERBOSE")) {
+
+        verbose <- as.logical(verbose)
+        if (is.na(verbose)) verbose <- TRUE
 
         code_text <-
           purrr::map(as.list(self$get_code(deep = deep)),
@@ -270,6 +322,23 @@ RDO <-
       },
 
 
+      #' @description Runing reproducible R code.
+      #' @param deep A logical.
+      #' Should the function run only code for this particular RDO (FALSE)
+      #' or should it run also dependencies' code if they are not validated.
+      #' The function is lazy and it checks
+      #' if all deep dependencies are validated first.
+      #' If so, there is no need to rerun their code again.
+      #' Default is FALSE.
+      #' @param cache A logical.
+      #' Should the result of code evaluation be cached inside an RDO object.
+      #' Default is TRUE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       run = function(deep = FALSE,
                      cache = TRUE,
                      verbose = Sys.getenv("RDO_VERBOSE")) {
@@ -373,6 +442,19 @@ RDO <-
       },
 
 
+      #' @description Checking if RDO is validated.
+      #' A RDO is validated when the result of running reproducible R code
+      #' saved inside the RDO is the same as data cached inside the RDO.
+      #' @param deep A logical.
+      #' Should the function validate only this particular RDO (FALSE)
+      #' or should it validate also all deep dependencies (TRUE).
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return A logical. TRUE if RDO is validated, FALSE if not.
       is_validated = function(deep = FALSE,
                               verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -407,6 +489,18 @@ RDO <-
       },
 
 
+      #' @description Invalidating the RDO explicitly
+      #' by setting the 'is_validated' status to 'FALSE'.
+      #' @param deep A logical.
+      #' Should the function invalidate only this particular RDO (FALSE)
+      #' or should it invalidate also all deep dependencies (TRUE).
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       invalidate = function(deep = FALSE,
                             verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -434,6 +528,19 @@ RDO <-
       },
 
 
+      #' @description Validating the RDO explicitly
+      #' by running deep reproducible R code
+      #' and checking if the result is the same as cached data inside the RDO.
+      #' @param deep A logical.
+      #' Should the function validate only this particular RDO (FALSE)
+      #' or should it validate also all deep dependencies (TRUE).
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       validate = function(deep = FALSE,
                           verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -487,6 +594,19 @@ RDO <-
       },
 
 
+      #' @description Locking the RDO object.
+      #' When RDO object is locked you
+      #' cannot change the R code and data cache saved inside the object.
+      #' @param deep A logical.
+      #' Should the function lock only this particular RDO (FALSE)
+      #' or should it lock also all deep dependencies (TRUE).
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       lock = function(deep = FALSE,
                       verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -512,6 +632,17 @@ RDO <-
       },
 
 
+      #' @description Unlocking previously locked RDO object.
+      #' @param deep A logical.
+      #' Should the function unlock only this particular RDO (FALSE)
+      #' or should it unlock also all deep dependencies (TRUE).
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       unlock = function(deep = FALSE,
                         verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -537,6 +668,17 @@ RDO <-
       },
 
 
+      #' @description Checking if an RDO object is locked.
+      #' @param deep A logical.
+      #' Should the function check only this particular RDO (FALSE)
+      #' or should it check also all deep dependencies (TRUE).
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return A logical. TRUE if RDO is locked, FALSE if not.
       is_locked = function(deep = FALSE,
                            verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -572,6 +714,21 @@ RDO <-
       },
 
 
+      #' @description Prunning (clearing) RDO data cache by setting
+      #' cache to NULL.
+      #' It can save memory when we no longer need
+      #' to keep cache in depencencies.
+      #' @param deep A logical.
+      #' Should the function prune cache of only this particular RDO (FALSE)
+      #' or should it prune cache also of deep dependencies (TRUE).
+      #' If an RDO is locked the cache in this particular RDO is not pruned.
+      #' Default is FALSE.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       prune_cache = function(deep = FALSE,
                              verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -598,6 +755,16 @@ RDO <-
       },
 
 
+      #' @description Prunning RDO dependencies by ensuring that RDO objects
+      #' in deep dependencies with the same name point to the same RDO objects.
+      #' This type of prunning may be useful after deep clonning of
+      #' complex RDO tree with duplicated dependencies.
+      #' @param verbose A logical.
+      #' Should the messages be sent to console.
+      #' If the param is not set, it is read from
+      #' an environmental variable \code{RDO_VERBOSE}.
+      #' If the variable is not set, than the default is TRUE.
+      #' @return The RDO object (self) returned invisibly.
       prune_dependencies = function(verbose = Sys.getenv("RDO_VERBOSE")) {
 
         verbose <- as.logical(verbose)
@@ -646,6 +813,8 @@ RDO <-
     # ACTIVE BINDINGS #########################################################
     active = list(
 
+      #' @description
+      #' Setting or printing reproducible R code of an RDO object.
       code = function(value) {
 
         if (missing(value)) {
@@ -661,6 +830,9 @@ RDO <-
       },
 
 
+      #' @description
+      #' Setting or returning data cache of an RDO object.
+      #' @return Cached object. If no object is cached returns NULL.
       cache = function(value) {
 
         if (missing(value)) {

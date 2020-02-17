@@ -26,6 +26,6 @@ usethis::use_package("purrr")
 usethis::use_package("data.table")
 usethis::use_package("visNetwork", type = "Suggests")
 usethis::use_package("testthat", type = "Suggests")
-usethis::use_package_doc()
+# usethis::use_package_doc()
 
 
