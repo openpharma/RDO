@@ -108,10 +108,6 @@ test_that("RDO after initialization", {
     as.numeric(data_mtcars$get_status()$cache_size),
     0)
 
-  # expect_equal(
-  #   is.character(data_mtcars$code),
-  #   TRUE)
-
   expect_equal(
     data_mtcars$get_code(),
     NULL)
@@ -150,7 +146,7 @@ test_that("RDO after initialization", {
 
 })
 
-# _setting code -------------------------------------------------------------
+# _setting code ---------------------------------------------------------------
 data_mtcars$code <- expression({
   data_mtcars <- mtcars
 })
@@ -161,11 +157,50 @@ test_that("setting code", {capture_output({
     data_mtcars$get_code(),
     expression(data_mtcars = {
       data_mtcars <- mtcars
-    }))
+    })
+  )
+
+  expect_error(
+    data_mtcars$code <- "not expression"
+  )
 
 })})
 
-# _running of code -------------------------------------------------------
+# _printing code -------------------------------------------------------------
+test_that("printing code", {capture_output({
+
+  expect_equal(
+    "RDO" %in% class(iris_mtcars_test$code),
+    TRUE
+  )
+
+  expect_output(
+    data_mtcars$code,
+    "data_mtcars <- mtcars"
+  )
+
+  expect_equal(
+    NROW(capture_output_lines(iris_mtcars_test$code)),
+    3
+  )
+
+  expect_equal(
+    NROW(capture_output_lines(
+      iris_mtcars_test$print_code(deep = TRUE, verbose = FALSE)
+    )),
+    0
+  )
+
+  expect_equal(
+    NROW(capture_output_lines(
+      iris_mtcars_test$print_code(deep = TRUE, verbose = TRUE)
+    )),
+    12
+  )
+
+})})
+
+# _running of code ------------------------------------------------------------
 test_that("running code", {capture_output({
 
   expect_equal(

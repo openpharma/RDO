@@ -305,11 +305,9 @@ RDO <-
 
         code_text <-
           purrr::map_chr(code_text, function(code_line) {
-
             if (code_line[1] == "{") {
               code_line <- code_line[-1]
             }
-
             paste(code_line, collapse = "\n")
           })
 
@@ -818,8 +816,14 @@ RDO <-
       code = function(value) {
 
         if (missing(value)) {
-          self$print_code(deep = TRUE, verbose = FALSE)
+          cat("<RDO code>\n")
+          self$print_code(deep = FALSE, verbose = TRUE)
+          return(self)
         } else {
+
+          if (!is.null(value) && !is.expression(value))
+            stop("The code is neither NULL nor an R expression. ",
+                 "Use 'RDO$code <- expression({<your code>})'.")
 
           if (private$status$is_locked)
             stop("This RDO is locked! Cannot overwrite the code.")
