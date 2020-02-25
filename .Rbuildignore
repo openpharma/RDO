@@ -3,3 +3,7 @@
 ^devel\.R$
 ^devel-BUFOR\.R$
 ^LICENSE\.md$
+^README\.Rmd$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
