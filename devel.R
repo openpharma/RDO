@@ -25,8 +25,15 @@ usethis::use_lifecycle_badge(stage = "Experimental")
 # usethis::use_pkgdown()
 
 pkgdown::build_site()
+ pkgdown:::build_site_external()
+
 
 usethis::use_version()
 usethis::use_dev_version()
 
+usethis::use_vignette("single-rdo-without-dependencies",
+                      "Single RDO without dependencies")
+
+usethis::use_vignette("rdo-with-dependencies",
+                      "RDO with dependencies")
 

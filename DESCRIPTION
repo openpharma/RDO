@@ -1,6 +1,6 @@
 Package: RDO
 Title: Reproducible Data Objects
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R: 
     person(given = "Kamil",
            family = "Wais",
@@ -23,5 +23,6 @@ Imports:
     purrr,
     data.table
 Suggests: 
-    visNetwork,
-    testthat
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

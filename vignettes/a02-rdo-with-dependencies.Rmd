@@ -1,0 +1,19 @@
+---
+title: "RDO with dependencies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{RDO with dependencies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(RDO)
+```
