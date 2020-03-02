@@ -354,7 +354,20 @@ RDO <-
           if (verbose) cat("has dependencies ...\n")
         } else {
           timing_start <- Sys.time()
-          temp_data <- eval(expr = self$get_code(deep = FALSE))
+          temp_data <-
+            tryCatch(
+
+              eval(expr = self$get_code(deep = FALSE),
+                   envir = new.env(),
+                   enclos = parent.env(env = globalenv())),
+
+              error = function(e) {
+                message("Error while running RDO code! \n",
+                        "Always check for missing dependencies... ")
+                stop(e)
+              }
+            )
+
           private$status$run_time <- Sys.time() - timing_start
           if (verbose) cat("done!\n")
         }
