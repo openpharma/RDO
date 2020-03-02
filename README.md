@@ -76,8 +76,8 @@ data_mtcars
 #> Name: data_mtcars 
 #> Dependencies: none.
 #> Status:
-#> - created:        2020-03-02 12:51:37 UTC 
-#> - last changed:   2020-03-02 12:51:37 UTC 
+#> - created:        2020-03-02 13:06:12 UTC 
+#> - last changed:   2020-03-02 13:06:12 UTC 
 #> - last touched:   (never) 
 #> - last validated: (never) 
 #> - last run time:   
@@ -151,12 +151,12 @@ data_mtcars
 #> Name: data_mtcars 
 #> Dependencies: none.
 #> Status:
-#> - created:        2020-03-02 12:51:37 UTC 
-#> - last changed:   2020-03-02 12:51:38 UTC 
-#> - last touched:   2020-03-02 12:51:38 UTC 
-#> - last validated: 2020-03-02 12:51:38 UTC 
-#> - last run time:  0.0200021266937256 
-#> - run time total: 0.0200021266937256 
+#> - created:        2020-03-02 13:06:12 UTC 
+#> - last changed:   2020-03-02 13:06:12 UTC 
+#> - last touched:   2020-03-02 13:06:12 UTC 
+#> - last validated: 2020-03-02 13:06:12 UTC 
+#> - last run time:  0.0190010070800781 
+#> - run time total: 0.0190010070800781 
 #> - is validated?   TRUE 
 #> - is locked?      FALSE 
 #> - cache size:     0.001 Mb 
@@ -179,12 +179,12 @@ data_mtcars$code
 #> Name: data_mtcars 
 #> Dependencies: none.
 #> Status:
-#> - created:        2020-03-02 12:51:37 UTC 
-#> - last changed:   2020-03-02 12:51:38 UTC 
-#> - last touched:   2020-03-02 12:51:38 UTC 
-#> - last validated: 2020-03-02 12:51:38 UTC 
-#> - last run time:  0.0200021266937256 
-#> - run time total: 0.0200021266937256 
+#> - created:        2020-03-02 13:06:12 UTC 
+#> - last changed:   2020-03-02 13:06:12 UTC 
+#> - last touched:   2020-03-02 13:06:12 UTC 
+#> - last validated: 2020-03-02 13:06:12 UTC 
+#> - last run time:  0.0190010070800781 
+#> - run time total: 0.0190010070800781 
 #> - is validated?   TRUE 
 #> - is locked?      FALSE 
 #> - cache size:     0.001 Mb 
