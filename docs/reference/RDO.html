@@ -107,6 +107,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -238,7 +241,7 @@ Default is FALSE.</p></dd>
 
 </dl><p></div></p>
 <h3>Returns</h3>
-<p>A named list of RDO dependencies wih unique names.</p>
+<p>A named list of RDO dependencies with unique names.</p>
 <p><hr>
 <a id="method-get_dependency_register"></a></p><h3>Method <code>get_dependency_register()</code></h3>
 <p>Getting dependency register showing which RDO is
@@ -249,7 +252,7 @@ a direct parent for other RDO dependencies.</p><h3>Usage</h3>
 <p>A data.frame.</p>
 <p><hr>
 <a id="method-plot_dependencies"></a></p><h3>Method <code>plot_dependencies()</code></h3>
-<p>Ploting the tree of RDO dependencies.
+<p>Plotting the tree of RDO dependencies.
 Needs <code>visNetwork</code> package for plotting.</p><h3>Usage</h3>
 <p><div class="r"></p><pre>RDO$plot_dependencies()</pre><p></div></p>
 
@@ -288,10 +291,10 @@ If the variable is not set, than the default is TRUE.</p></dd>
 
 </dl><p></div></p>
 <h3>Returns</h3>
-<p>A charater. Reproducible R code returned invisibly.</p>
+<p>A character. Reproducible R code returned invisibly.</p>
 <p><hr>
 <a id="method-run"></a></p><h3>Method <code>run()</code></h3>
-<p>Runing reproducible R code.</p><h3>Usage</h3>
+<p>Running reproducible R code.</p><h3>Usage</h3>
 <p><div class="r"></p><pre>RDO$run(deep = FALSE, cache = TRUE, verbose = Sys.getenv("RDO_VERBOSE"))</pre><p></div></p>
 
 <h3>Arguments</h3>
@@ -452,10 +455,10 @@ If the variable is not set, than the default is TRUE.</p></dd>
 <p>A logical. TRUE if RDO is locked, FALSE if not.</p>
 <p><hr>
 <a id="method-prune_cache"></a></p><h3>Method <code>prune_cache()</code></h3>
-<p>Prunning (clearing) RDO data cache by setting
+<p>Pruning (clearing) RDO data cache by setting
 cache to NULL.
 It can save memory when we no longer need
-to keep cache in depencencies.</p><h3>Usage</h3>
+to keep cache in dependencies.</p><h3>Usage</h3>
 <p><div class="r"></p><pre>RDO$prune_cache(deep = FALSE, verbose = Sys.getenv("RDO_VERBOSE"))</pre><p></div></p>
 
 <h3>Arguments</h3>
@@ -477,9 +480,9 @@ If the variable is not set, than the default is TRUE.</p></dd>
 <p>The RDO object (self) returned invisibly.</p>
 <p><hr>
 <a id="method-prune_dependencies"></a></p><h3>Method <code>prune_dependencies()</code></h3>
-<p>Prunning RDO dependencies by ensuring that RDO objects
+<p>Pruning RDO dependencies by ensuring that RDO objects
 in deep dependencies with the same name point to the same RDO objects.
-This type of prunning may be useful after deep clonning of
+This type of pruning may be useful after deep clonning of
 complex RDO tree with duplicated dependencies.</p><h3>Usage</h3>
 <p><div class="r"></p><pre>RDO$prune_dependencies(verbose = Sys.getenv("RDO_VERBOSE"))</pre><p></div></p>
 

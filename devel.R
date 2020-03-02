@@ -29,7 +29,7 @@ pkgdown::build_site()
  pkgdown:::build_site_external()
 
 
-usethis::use_version()
+usethis::use_version(which = "minor")
 usethis::use_dev_version()
 
 # usethis::use_vignette("single-rdo-without-dependencies",
@@ -39,8 +39,9 @@ usethis::use_dev_version()
 #                       "RDO with dependencies")
 
 devtools::spell_check()
+
 spelling::update_wordlist()
-usethis::use_news_md()
+# usethis::use_news_md()
 # usethis::use_pipe()
 # usethis::use_logo(file.path("inst/figures", "rdo_hexsticker.png"))
 

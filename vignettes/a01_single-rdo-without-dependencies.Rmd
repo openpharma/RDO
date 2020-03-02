@@ -159,7 +159,7 @@ data_mtcars$unlock()
 
 ## Explicit validation
 
-Running the code and caching the result _implicitely validating_ the RDO,
+Running the code and caching the result _implicitly validating_ the RDO,
 but there is also an _explicit validation_. 
 Explicit Validation is done using `validate()` method. 
 The method is evaluating the reproducible code and the result is compare

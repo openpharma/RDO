@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 ## Creating an RDO with dependencies
 
-Let's start by creading a simple RDO that will be a dependency for another RDO.
+Let's start by creating a simple RDO that will be a dependency for another RDO.
 
 ```{r}
 data_mtcars <- RDO::RDO$new(name = "data_mtcars")
@@ -45,7 +45,7 @@ The code needs `data_mtcars` as dependency but no dependency is defined yet.
 mtcars_half_top$has_dependencies()
 ```
 
-Running the RDO code will give an error as the dependecy is missing.
+Running the RDO code will give an error as the dependency is missing.
 
 ```{r, error=TRUE}
 mtcars_half_top$run()
@@ -71,7 +71,7 @@ mtcars_half_top$code
 ```
 
 We can see that our `mtcars_half_top` RDO has `data_mtcars` RDO as dependency.
-The object is valdiated, and the cache contains top 16 rows of `mtcars` dataset.
+The object is validated, and the cache contains top 16 rows of `mtcars` dataset.
 
 ## Example RDO definitions
 
@@ -187,7 +187,7 @@ names(iris_mtcars_test$get_dependencies(deep = TRUE))
 iris_mtcars_test$get_dependencies(deep = TRUE)$data_mtcars$code
 ```
 
-## Prunning cache
+## Pruning cache
 
 If we don't need to keep the data cache in all dependencies we can remove it 
 using `prune_cache()` method. 
@@ -206,7 +206,7 @@ as.numeric(iris_mtcars_test$get_status()$cache_size_total)
 The cache from unlocked RDOs was removed and we reduced the total cache size.
 
 
-## Ploting an RDO tree
+## Plotting an RDO tree
 
 We can plot the whole RDO tree. 
 The blue RDOs are validated, the orange ones are not.
