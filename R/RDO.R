@@ -560,9 +560,7 @@ RDO <-
 
         has_dependencies <- self$has_dependencies()
 
-        if (deep | !has_dependencies) {
-          eval_envir <- new.env()
-        }
+        eval_envir <- new.env()
 
         if (!deep & has_dependencies) {
 
