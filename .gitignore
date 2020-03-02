@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+devel-BUFOR.R
+inst/doc

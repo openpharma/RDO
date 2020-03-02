@@ -1,0 +1,241 @@
+---
+title: "RDO with dependencies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{RDO with dependencies}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Creating an RDO with dependencies
+
+Let's start by creating a simple RDO that will be a dependency for another RDO.
+
+```{r}
+data_mtcars <- RDO::RDO$new(name = "data_mtcars")
+
+data_mtcars$code <- expression({
+  data_mtcars <- mtcars
+})
+```
+
+Now let's create a new RDO with R code that needs the `data_mtcars` object
+to be evaluated first. 
+
+```{r}
+mtcars_half_top <- RDO::RDO$new(name = "mtcars_half_top")
+
+mtcars_half_top$code <- expression({
+  mtcars_half_top <- head(data_mtcars, 16)
+})
+```
+
+The code needs `data_mtcars` as dependency but no dependency is defined yet.
+
+```{r}
+mtcars_half_top$has_dependencies()
+```
+
+Running the RDO code will give an error as the dependency is missing.
+
+```{r, error=TRUE}
+mtcars_half_top$run()
+```
+
+We can add add the missing dependency to the RDO.
+
+```{r, error=TRUE}
+mtcars_half_top$add_dependencies(dependencies = data_mtcars)
+
+mtcars_half_top$run()
+```
+
+Running the code still gives an error. 
+This time the dependency is present but is not validated.
+Let's run the dependency code first.
+
+```{r}
+data_mtcars$run()
+mtcars_half_top$run()
+NROW(mtcars_half_top$cache)
+mtcars_half_top$code
+```
+
+We can see that our `mtcars_half_top` RDO has `data_mtcars` RDO as dependency.
+The object is validated, and the cache contains top 16 rows of `mtcars` dataset.
+
+## Example RDO definitions
+
+Let's define more RDOs with respective R code. 
+We can use `dependencies` argument of the constructor 
+function to set dependencies in one step.
+ 
+```{r}
+mtcars_half_bottom <-
+  RDO::RDO$new(name = "mtcars_half_bottom",
+               dependencies = list(data_mtcars))
+
+mtcars_half_bottom$code <- expression({
+  mtcars_half_bottom <- tail(data_mtcars, 16)
+})
+
+mtcars_whole <-
+  RDO::RDO$new(name = "mtcars_whole",
+               dependencies = list(mtcars_half_top,
+                                   mtcars_half_bottom))
+
+mtcars_whole$code <- expression({
+  mtcars_whole <- rbind(mtcars_half_top,
+                        mtcars_half_bottom)
+})
+
+data_iris <-
+  RDO::RDO$new(name = "data_iris")
+
+data_iris$code <- expression({
+  data_iris <- iris
+})
+
+iris_selected_rows <-
+  RDO::RDO$new(name = "iris_selected_rows",
+               dependencies = list(data_iris))
+
+iris_selected_rows$code <- expression({
+  set.seed(1234)
+  sampled_rows <- c(rep(TRUE, 32), rep(FALSE, NROW(data_iris) - 32))
+  iris_selected_rows <- data_iris[sample(sampled_rows, NROW(data_iris)), ]
+})
+
+iris_selected_columns <-
+  RDO::RDO$new(name = "iris_selected_columns",
+               dependencies = list(iris_selected_rows))
+
+iris_selected_columns$code <- expression({
+  iris_selected_columns <- iris_selected_rows[, c("Species", "Petal.Width")]
+})
+
+iris_mtcars <-
+  RDO::RDO$new(name = "iris_mtcars",
+               dependencies = list(mtcars_whole,
+                                   iris_selected_columns))
+
+iris_mtcars$code <- expression({
+  iris_mtcars <- cbind(iris_selected_columns, mtcars_whole)
+})
+
+iris_mtcars_test <-
+  RDO::RDO$new(name = "iris_mtcars_test",
+               dependencies = list(iris_mtcars))
+
+iris_mtcars_test$code <- expression({
+
+  stopifnot("mpg" %in% names(iris_mtcars))
+  iris_mtcars <- iris_mtcars
+
+})
+```
+
+## Deep dependencies
+
+Most RDO methods has `deep` parameter. W
+hen set to `FALSE` (default) you won't be interacting with RDO dependencies. 
+If set to `TRUE` the method will touch all deep dependencies inside your RDO.
+By _deep dependencies_ I mean all dependencies of the RDO, their dependencies, 
+and dependencies of their dependencies, etc.
+
+Let's take the `iris_mtcars_test` RDO that is at the top of our RDO tree,
+and see the code needed to reproduce the whole tree. 
+
+```{r}
+iris_mtcars_test$print_code(deep = TRUE)
+```
+
+We can check what dependencies are validated.
+
+```{r}
+iris_mtcars_test$is_validated(deep = TRUE)
+```
+
+Let's run the code with `deep = TRUE`. 
+It will run the code of all not validated RDOs.
+
+```{r}
+iris_mtcars_test$run(deep = TRUE)
+iris_mtcars_test$is_validated(deep = TRUE)
+```
+
+Now the `iris_mtcars_test` RDO is deeply validated as all its dependencies are validated as well.
+
+## Accessing dependencies
+
+We can access any RDO dependency with `get_dependencies()` method.
+With `deep = TRUE` the method returns a list of all deep unique dependencies.
+Each RDO on this dependency list can be accessed directly. 
+
+```{r}
+names(iris_mtcars_test$get_dependencies(deep = TRUE))
+
+iris_mtcars_test$get_dependencies(deep = TRUE)$data_mtcars$code
+```
+
+## Pruning cache
+
+If we don't need to keep the data cache in all dependencies we can remove it 
+using `prune_cache()` method. 
+The cache won't be removed from locked RDOs.
+
+Let's lock some RDOs and clear cache in the rest.
+
+```{r}
+as.numeric(iris_mtcars_test$get_status()$cache_size_total)
+data_mtcars$lock()$is_locked()
+data_iris$lock()$is_locked()
+iris_mtcars_test$prune_cache(deep = TRUE)
+as.numeric(iris_mtcars_test$get_status()$cache_size_total)
+```
+
+The cache from unlocked RDOs was removed and we reduced the total cache size.
+
+
+## Plotting an RDO tree
+
+We can plot the whole RDO tree. 
+The blue RDOs are validated, the orange ones are not.
+You can zoom in or out the interactive plot and see the details of 
+each RDO. 
+
+```{r, fig.height=6, fig.width=6}
+iris_mtcars_test$plot_dependencies()
+```
+
+```{r eval=FALSE, include=FALSE}
+html_name <- tempfile(fileext = ".html")
+visNetwork::visSave(iris_mtcars_test$plot_dependencies(), html_name)
+webshot::webshot(html_name, zoom = 2, file = "rdo_plot.png")
+
+hexSticker::sticker(
+  subplot = "rdo_plot.png", 
+  package = "RDO", 
+  h_fill = "white",
+  h_color = "#1881C2",
+  p_size = 50, 
+  p_y = 1.1,
+  p_color = "#1881C2", 
+  s_x = .9, 
+  s_y = 1.1, 
+  s_width = .6,
+  filename = "inst/figures/rdo_hexsticker.png")
+```
+
+
+
+

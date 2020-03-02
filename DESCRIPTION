@@ -1,0 +1,33 @@
+Package: RDO
+Title: Reproducible Data Objects
+Version: 0.1.0
+Authors@R: 
+    person(given = "Kamil",
+           family = "Wais",
+           role = c("aut", "cre"),
+           email = "kamil.wais@gmail.com",
+           comment = c(ORCID = "0000-0002-4062-055X"))
+Description: A Reproducible Data Object (RDO) encapsulates both
+    data and R code needed to reproduce those data. Each RDO can have
+    other RDOs as dependencies. RDOs can be composed into complex tree
+    hierarchies. Interacting with an RDO tree is similar to interacting
+    with a single RDO. You can (re)run the code and refresh the cache,
+    check status, validate if the code still gives the same cached data,
+    clear data cache, access code and data cache of any of the
+    dependencies. RDOs can be cloned and code of cloned dependencies can
+    be modified.
+License: MIT + file LICENSE
+URL: https://github.com/openpharma/RDO#readme
+BugReports: https://github.com/openpharma/RDO/issues
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    purrr,
+    data.table
+Suggests: 
+    visNetwork,
+    testthat,
+    knitr,
+    rmarkdown
+RoxygenNote: 7.0.2
+VignetteBuilder: knitr

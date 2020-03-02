@@ -1,0 +1,176 @@
+---
+title: "Single RDO without dependencies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Single RDO without dependencies}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  cache = FALSE,
+  comment = "#>"
+)
+```
+
+## Creating a Reproducible Data Object (RDO)
+
+Let's create a single RDO without any dependencies.
+Our ROD object will be encapsulating `mtcars` dataset under different
+name `data_mtcars` and the reproducible R code. 
+
+```{r}
+# library(RDO)
+data_mtcars <- RDO::RDO$new(name = "data_mtcars")
+
+data_mtcars
+```
+
+Printing the object gives you the name of the object,
+dependencies if there are any, and statuses.
+
+Let's add the reproducible code. The code needs to be of `expression` class.
+We need simply to wrap our code in `expression({ })`.
+
+```{r}
+data_mtcars$code <- expression({
+  data_mtcars <- mtcars
+})
+
+data_mtcars
+```
+
+If we changing the code or the cached data the timestamp `last changed` 
+is updated. 
+Reading the cache changes the `last touched` timestamp, so we know 
+when the RDO was last used. 
+
+We can access the cached data via active binding `cache`.
+
+```{r}
+data_mtcars$cache
+```
+
+The cache is `NULL` as the code has never been run yet 
+and the data haven't been cached yet. Let's do it for the first time...
+
+## Running the RDO R code
+
+```{r}
+data_mtcars$run()
+```
+
+If we don't want to see messages printed out to the console we can turn it off
+in RDO methods using `verbose` parameter (default is `TRUE`).
+
+```{r}
+data_mtcars$run(verbose = FALSE)
+
+head(data_mtcars$cache)
+
+data_mtcars
+```
+
+Now the data cache is available.
+We can see how big is the size of the RDO cache.
+
+## Implicit validation
+
+After the code was evaluated and the result was cached, 
+the status `is validated?` changed to `TRUE`. 
+This is called _implicit validation_.
+We can confirm it with `is_validated()` method.
+
+```{r}
+data_mtcars$is_validated()
+```
+
+## Chaining the RDO methods
+
+Many of RDO methods return `self` object so we can chain them.
+
+```{r}
+data_mtcars$run()$is_validated()
+```
+
+## RDO getters
+
+We can access the name of the RDO using `get_name()` method.
+
+```{r}
+data_mtcars$get_name()
+```
+
+The `get_status` method returns the list of different statuses.
+
+```{r}
+data_mtcars$get_status()
+```
+
+## Getting the code
+
+To access the code as a text we can use `code` active binding.
+It returns the RDO (self) but before that it prints out to the console
+the RDO code. 
+
+```{r}
+data_mtcars$code
+```
+
+
+The `print_code()` method can give you similar effect.
+
+```{r}
+data_mtcars$print_code()
+```
+
+If you want to get your code as R expressions you can use `get_code()` method.
+The returned expression can be than evaluated manually. 
+You can also use `run_code(cache = FALSE)` method for that purpose. 
+The code will be evaluated but result will not be cached.
+
+```{r}
+data_mtcars$get_code()
+
+eval_result <- eval(data_mtcars$get_code(), envir = new.env())
+head(eval_result)
+
+head(data_mtcars$run(cache = FALSE))
+```
+
+## Locking an RDO
+
+You can reset your cache to by setting its value to `NULL`, 
+but you cannot do it if the RDO is locked.
+
+```{r error=TRUE}
+data_mtcars$cache <- NULL
+
+data_mtcars$run()$lock()$is_locked()
+
+data_mtcars$cache <- NULL
+
+data_mtcars$unlock()
+```
+
+## Explicit validation
+
+Running the code and caching the result _implicitly validating_ the RDO,
+but there is also an _explicit validation_. 
+Explicit Validation is done using `validate()` method. 
+The method is evaluating the reproducible code and the result is compare
+to the cached data. If they are the same, the RDO is validated.
+
+```{r}
+data_mtcars$cache <- iris
+
+data_mtcars$validate()$is_validated()
+
+data_mtcars$cache <- mtcars
+
+data_mtcars$validate()$is_validated()
+```
