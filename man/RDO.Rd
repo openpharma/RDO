@@ -143,7 +143,7 @@ Default is FALSE.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A named list of RDO dependencies wih unique names.
+A named list of RDO dependencies with unique names.
 }
 }
 \if{html}{\out{<hr>}}
@@ -162,7 +162,7 @@ A data.frame.
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plot_dependencies"></a>}}
 \subsection{Method \code{plot_dependencies()}}{
-Ploting the tree of RDO dependencies.
+Plotting the tree of RDO dependencies.
 Needs \code{visNetwork} package for plotting.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{RDO$plot_dependencies()}\if{html}{\out{</div>}}
@@ -216,13 +216,13 @@ If the variable is not set, than the default is TRUE.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A charater. Reproducible R code returned invisibly.
+A character. Reproducible R code returned invisibly.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-run"></a>}}
 \subsection{Method \code{run()}}{
-Runing reproducible R code.
+Running reproducible R code.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{RDO$run(deep = FALSE, cache = TRUE, verbose = Sys.getenv("RDO_VERBOSE"))}\if{html}{\out{</div>}}
 }
@@ -432,10 +432,10 @@ A logical. TRUE if RDO is locked, FALSE if not.
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-prune_cache"></a>}}
 \subsection{Method \code{prune_cache()}}{
-Prunning (clearing) RDO data cache by setting
+Pruning (clearing) RDO data cache by setting
 cache to NULL.
 It can save memory when we no longer need
-to keep cache in depencencies.
+to keep cache in dependencies.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{RDO$prune_cache(deep = FALSE, verbose = Sys.getenv("RDO_VERBOSE"))}\if{html}{\out{</div>}}
 }
@@ -464,9 +464,9 @@ The RDO object (self) returned invisibly.
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-prune_dependencies"></a>}}
 \subsection{Method \code{prune_dependencies()}}{
-Prunning RDO dependencies by ensuring that RDO objects
+Pruning RDO dependencies by ensuring that RDO objects
 in deep dependencies with the same name point to the same RDO objects.
-This type of prunning may be useful after deep clonning of
+This type of pruning may be useful after deep clonning of
 complex RDO tree with duplicated dependencies.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{RDO$prune_dependencies(verbose = Sys.getenv("RDO_VERBOSE"))}\if{html}{\out{</div>}}

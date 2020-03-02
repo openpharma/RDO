@@ -1,5 +1,5 @@
 
-usethis::use_testthat()
+# usethis::use_testthat()
 # usethis::use_test()
 
 
@@ -9,23 +9,39 @@ usethis::use_description(fields = list(
                  role = c("aut", "cre"),
                  comment = c(ORCID = "0000-0002-4062-055X"))',
   License = "MIT + file LICENSE",
-  Title = "Create Reproducible Data Objects",
-  Description = "Reproducible Data Objects (RDO)
-  encapsulate both data and R code needed to reproduce the data.
-  The RDOs can be composed into complex tree hierarchies.
-  Interacting with such complex RDO is similar to interacting with a single RDO.
-  You can rerun the code and refresh the cache, check RDO's status,
-  validate if the code still gives the cached data,
-  clear data cache, or access code and data cache of any of the dependencies.
-  The RDOs can be cloned and code of dependencies can be modified.
-  The RDOs can be send to a user via Plumber API."
+  URL = c("https://github.com/openpharma/RDO/issues"),
+  Title = "Reproducible Data Objects",
+  Description = "A Reproducible Data Object (RDO) encapsulates both data and R code needed to reproduce those data. Each RDO can have other RDOs as dependencies. RDOs can be composed into complex tree hierarchies. Interacting with an RDO tree is similar to interacting with a single RDO. You can (re)run the code and refresh the cache, check status, validate if the code still gives the same cached data, clear data cache, access code and data cache of any of the dependencies. RDOs can be cloned and code of cloned dependencies can be modified."
 ))
-usethis::use_mit_license(name = "Kamil Wais")
-
 usethis::use_package("purrr")
 usethis::use_package("data.table")
 usethis::use_package("visNetwork", type = "Suggests")
 usethis::use_package("testthat", type = "Suggests")
+# usethis::use_mit_license(name = "Kamil Wais")
 # usethis::use_package_doc()
 
+# usethis::use_readme_rmd()
+usethis::use_lifecycle_badge(stage = "Experimental")
+
+# usethis::use_pkgdown()
+
+pkgdown::build_site()
+ pkgdown:::build_site_external()
+
+
+usethis::use_version(which = "minor")
+usethis::use_dev_version()
+
+# usethis::use_vignette("single-rdo-without-dependencies",
+#                       "Single RDO without dependencies")
+#
+# usethis::use_vignette("rdo-with-dependencies",
+#                       "RDO with dependencies")
+
+devtools::spell_check()
+
+spelling::update_wordlist()
+# usethis::use_news_md()
+# usethis::use_pipe()
+# usethis::use_logo(file.path("inst/figures", "rdo_hexsticker.png"))
 

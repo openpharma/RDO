@@ -131,7 +131,7 @@ RDO <-
       #' Should the function return only direct dependencies (FALSE) or
       #' also deep indirect dependencies (dependencies of dependencies).
       #' Default is FALSE.
-      #' @return A named list of RDO dependencies wih unique names.
+      #' @return A named list of RDO dependencies with unique names.
       get_dependencies = function(deep = FALSE) {
 
         has_dependencies <- self$has_dependencies()
@@ -177,7 +177,7 @@ RDO <-
         })
       },
 
-      #' @description Ploting the tree of RDO dependencies.
+      #' @description Plotting the tree of RDO dependencies.
       #' Needs \code{visNetwork} package for plotting.
       plot_dependencies = function() {
 
@@ -292,7 +292,7 @@ RDO <-
       #' If the param is not set, it is read from
       #' an environmental variable \code{RDO_VERBOSE}.
       #' If the variable is not set, than the default is TRUE.
-      #' @return A charater. Reproducible R code returned invisibly.
+      #' @return A character. Reproducible R code returned invisibly.
       print_code = function(deep = FALSE,
                             verbose = Sys.getenv("RDO_VERBOSE")) {
 
@@ -320,7 +320,7 @@ RDO <-
       },
 
 
-      #' @description Runing reproducible R code.
+      #' @description Running reproducible R code.
       #' @param deep A logical.
       #' Should the function run only code for this particular RDO (FALSE)
       #' or should it run also dependencies' code if they are not validated.
@@ -354,7 +354,20 @@ RDO <-
           if (verbose) cat("has dependencies ...\n")
         } else {
           timing_start <- Sys.time()
-          temp_data <- eval(expr = self$get_code(deep = FALSE))
+          temp_data <-
+            tryCatch(
+
+              eval(expr = self$get_code(deep = FALSE),
+                   envir = new.env(),
+                   enclos = parent.env(env = globalenv())),
+
+              error = function(e) {
+                message("Error while running RDO code! \n",
+                        "Always check for missing dependencies... ")
+                stop(e)
+              }
+            )
+
           private$status$run_time <- Sys.time() - timing_start
           if (verbose) cat("done!\n")
         }
@@ -547,9 +560,7 @@ RDO <-
 
         has_dependencies <- self$has_dependencies()
 
-        if (deep | !has_dependencies) {
-          eval_envir <- new.env()
-        }
+        eval_envir <- new.env()
 
         if (!deep & has_dependencies) {
 
@@ -712,10 +723,10 @@ RDO <-
       },
 
 
-      #' @description Prunning (clearing) RDO data cache by setting
+      #' @description Pruning (clearing) RDO data cache by setting
       #' cache to NULL.
       #' It can save memory when we no longer need
-      #' to keep cache in depencencies.
+      #' to keep cache in dependencies.
       #' @param deep A logical.
       #' Should the function prune cache of only this particular RDO (FALSE)
       #' or should it prune cache also of deep dependencies (TRUE).
@@ -743,19 +754,22 @@ RDO <-
           rdo_name  <- rdo$get_name()
           is_locked <- rdo$is_locked(verbose = FALSE)
 
-          if (!is_locked) {rdo$cache <- NULL}
-
-          if (verbose) cat("Cache in RDO: '", rdo_name, "' was ",
-                           "cleared.\n", sep = "")
+          if (!is_locked) {
+            rdo$cache <- NULL
+            if (verbose) cat("Cache in RDO: '", rdo_name, "' was ",
+                             "cleared.\n", sep = "")
+          } else {
+            if (verbose) cat("RDO: '", rdo_name, "' is locked!\n", sep = "")
+          }
         })
 
         invisible(self)
       },
 
 
-      #' @description Prunning RDO dependencies by ensuring that RDO objects
+      #' @description Pruning RDO dependencies by ensuring that RDO objects
       #' in deep dependencies with the same name point to the same RDO objects.
-      #' This type of prunning may be useful after deep clonning of
+      #' This type of pruning may be useful after deep clonning of
       #' complex RDO tree with duplicated dependencies.
       #' @param verbose A logical.
       #' Should the messages be sent to console.
@@ -788,7 +802,7 @@ RDO <-
           purrr::pwalk(duplicated_clones, function(dependency, parent) {
 
             if (verbose) {
-              cat("Prunning dependency:", dependency,
+              cat("Pruning dependency:", dependency,
                   "in parent:", parent, "... ")
             }
 
