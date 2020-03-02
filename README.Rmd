@@ -15,7 +15,9 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 # RDO (Reproducible Data Objects)
+<img src='man/figures/logo.png' align="right" height="139" />
 
 by [Kamil Wais](https://kalimu.github.io/)
 
@@ -26,9 +28,10 @@ by [Kamil Wais](https://kalimu.github.io/)
 <!-- badges: end -->
 
 > The __RDO__ R package allows you to create and interact with 
-> __Reproducible Data Objects (RDO)__.  
+> __Reproducible Data Objects (RDO)__.
 > An RDO object __encapsulates both data and R code__ 
 > needed to reproduce the data.  
+
 > The development of the RDO package is __supported by Roche__.
 
 RDOs can have other RDOs as dependencies and can be composed into complex 
@@ -132,6 +135,6 @@ At any time we can extract the cached data and the reproducible R code.
 
 ```{r}
 data_mtcars$cache
-cat(data_mtcars$code)
+data_mtcars$code
 ```
 

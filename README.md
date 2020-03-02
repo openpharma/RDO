@@ -3,6 +3,8 @@
 
 # RDO (Reproducible Data Objects)
 
+<img src='man/figures/logo.png' align="right" height="139" />
+
 by [Kamil Wais](https://kalimu.github.io/)
 
 <!-- badges: start -->
@@ -14,9 +16,9 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 > The **RDO** R package allows you to create and interact with
-> **Reproducible Data Objects (RDO)**.  
-> An RDO object **encapsulates both data and R code** needed to
-> reproduce the data.  
+> **Reproducible Data Objects (RDO)**. An RDO object **encapsulates both
+> data and R code** needed to reproduce the data.
+
 > The development of the RDO package is **supported by Roche**.
 
 RDOs can have other RDOs as dependencies and can be composed into
@@ -74,8 +76,8 @@ data_mtcars
 #> Name: data_mtcars 
 #> Dependencies: none.
 #> Status:
-#> - created:        2020-02-25 13:25:08 UTC 
-#> - last changed:   2020-02-25 13:25:08 UTC 
+#> - created:        2020-03-02 12:51:37 UTC 
+#> - last changed:   2020-03-02 12:51:37 UTC 
 #> - last touched:   (never) 
 #> - last validated: (never) 
 #> - last run time:   
@@ -149,12 +151,12 @@ data_mtcars
 #> Name: data_mtcars 
 #> Dependencies: none.
 #> Status:
-#> - created:        2020-02-25 13:25:08 UTC 
-#> - last changed:   2020-02-25 13:25:09 UTC 
-#> - last touched:   2020-02-25 13:25:09 UTC 
-#> - last validated: 2020-02-25 13:25:09 UTC 
-#> - last run time:  0.0200009346008301 
-#> - run time total: 0.0200009346008301 
+#> - created:        2020-03-02 12:51:37 UTC 
+#> - last changed:   2020-03-02 12:51:38 UTC 
+#> - last touched:   2020-03-02 12:51:38 UTC 
+#> - last validated: 2020-03-02 12:51:38 UTC 
+#> - last run time:  0.0200021266937256 
+#> - run time total: 0.0200021266937256 
 #> - is validated?   TRUE 
 #> - is locked?      FALSE 
 #> - cache size:     0.001 Mb 
@@ -169,7 +171,22 @@ data_mtcars$cache
 #>                cyl  mpg
 #> Fiat 128         4 32.4
 #> Toyota Corolla   4 33.9
-cat(data_mtcars$code)
+data_mtcars$code
+#> <RDO code>
 #> data_mtcars <- mtcars
 #> data_mtcars <- data_mtcars[data_mtcars$mpg > 31, c("cyl", "mpg")]
+#> <RDO>
+#> Name: data_mtcars 
+#> Dependencies: none.
+#> Status:
+#> - created:        2020-03-02 12:51:37 UTC 
+#> - last changed:   2020-03-02 12:51:38 UTC 
+#> - last touched:   2020-03-02 12:51:38 UTC 
+#> - last validated: 2020-03-02 12:51:38 UTC 
+#> - last run time:  0.0200021266937256 
+#> - run time total: 0.0200021266937256 
+#> - is validated?   TRUE 
+#> - is locked?      FALSE 
+#> - cache size:     0.001 Mb 
+#> - cached total:   0.001 Mb
 ```

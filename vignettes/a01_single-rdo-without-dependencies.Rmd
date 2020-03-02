@@ -114,13 +114,15 @@ data_mtcars$get_status()
 ## Getting the code
 
 To access the code as a text we can use `code` active binding.
-It returns multiline character object that can be `cat()` to the R console.
+It returns the RDO (self) but before that it prints out to the console
+the RDO code. 
 
 ```{r}
-cat(data_mtcars$code)
+data_mtcars$code
 ```
 
-The same effect will give you the `print_code()` method.
+
+The `print_code()` method can give you similar effect.
 
 ```{r}
 data_mtcars$print_code()

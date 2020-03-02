@@ -754,10 +754,13 @@ RDO <-
           rdo_name  <- rdo$get_name()
           is_locked <- rdo$is_locked(verbose = FALSE)
 
-          if (!is_locked) {rdo$cache <- NULL}
-
-          if (verbose) cat("Cache in RDO: '", rdo_name, "' was ",
-                           "cleared.\n", sep = "")
+          if (!is_locked) {
+            rdo$cache <- NULL
+            if (verbose) cat("Cache in RDO: '", rdo_name, "' was ",
+                             "cleared.\n", sep = "")
+          } else {
+            if (verbose) cat("RDO: '", rdo_name, "' is locked!\n", sep = "")
+          }
         })
 
         invisible(self)

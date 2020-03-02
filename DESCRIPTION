@@ -1,6 +1,6 @@
 Package: RDO
 Title: Reproducible Data Objects
-Version: 0.0.0.9001
+Version: 0.0.0.9000
 Authors@R: 
     person(given = "Kamil",
            family = "Wais",
@@ -17,12 +17,17 @@ Description: A Reproducible Data Object (RDO) encapsulates both
     dependencies. RDOs can be cloned and code of cloned dependencies can
     be modified.
 License: MIT + file LICENSE
+URL: https://github.com/openpharma/RDO#readme
+BugReports: https://github.com/openpharma/RDO/issues
 Encoding: UTF-8
 LazyData: true
 Imports: 
     purrr,
     data.table
 Suggests: 
+    visNetwork,
+    testthat,
     knitr,
     rmarkdown
+RoxygenNote: 7.0.2
 VignetteBuilder: knitr
