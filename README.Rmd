@@ -32,7 +32,9 @@ by [Kamil Wais](https://kalimu.github.io/)
 > An RDO object __encapsulates both data and R code__ 
 > needed to reproduce the data.  
 
-> The development of the RDO package is __supported by Roche__.
+> The development of the RDO package is __supported by Roche__.  
+
+> Package documentation: [openpharma.github.io/RDO](https://openpharma.github.io/RDO/)
 
 RDOs can have other RDOs as dependencies and can be composed into complex 
 hierarchy (RDO trees). 
@@ -46,7 +48,6 @@ clear data cache, access code and data cache of any of the dependencies.
 
 Both a single RDO and a complex RDO tree can be cloned, 
 and code of the cloned dependencies can be also modified later.
-
 
 
 ## Installation
